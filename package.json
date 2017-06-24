@@ -9,6 +9,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "immutable": "^3.8.1"
+    "autobahn": "^17.5.2",
+    "immutable": "^3.8.1",
+    "lodash": "^4.17.4",
+    "node-fetch": "^1.7.1",
+    "query-string": "^4.3.4",
+    "rambda": "^0.7.0",
+    "request": "^2.81.0",
+    "request-promise-native": "^1.0.4",
+    "sql.js": "^0.4.0"
   }
 }
