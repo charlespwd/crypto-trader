@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as strategy from './strategy'
 import api from './api'
 import trade from './trade'
-import { formatBalances } from './format'
+import { formatBalances, formatPairs } from './format'
 import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils'
 import * as yesno from 'yesno'
 const vorpal = require('vorpal')()
@@ -87,7 +87,13 @@ vorpal
     } else {
       this.log('OK! Not doing it!')
     }
+  })
 
+vorpal
+  .command('pairs')
+  .action(async function pairs(args, callback) {
+    const tickers = await api.tickers();
+    this.log(formatPairs(tickers))
   })
 
 export default function run() {
