@@ -9,14 +9,28 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/es6-promise": "^0.0.32",
+    "@types/lodash": "^4.14.66",
+    "@types/node": "^8.0.2",
+    "@types/query-string": "^4.3.1",
+    "@types/ramda": "^0.24.0",
+    "@types/request-promise-native": "^1.0.5",
     "autobahn": "^17.5.2",
+    "cli-table": "^0.3.1",
+    "coinbase": "^2.0.6",
     "immutable": "^3.8.1",
     "lodash": "^4.17.4",
     "node-fetch": "^1.7.1",
+    "nodemon": "^1.11.0",
     "query-string": "^4.3.4",
     "rambda": "^0.7.0",
+    "ramda": "^0.24.1",
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4",
-    "sql.js": "^0.4.0"
+    "sql.js": "^0.4.0",
+    "ts-node": "^3.1.0",
+    "typescript": "^2.3.4",
+    "vorpal": "^1.12.0",
+    "yesno": "^0.0.1"
   }
 }
