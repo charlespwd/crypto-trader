@@ -11,7 +11,7 @@ const ask = (question, def) => new Promise(r => {
 });
 
 vorpal
-  .command('balances [coins...]', 'display your current balances')
+  .command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .action(async function getBalances(args, callback) {
     const tp = api.tickers()
@@ -23,15 +23,15 @@ vorpal
       : balances
     const usdBalances = toUSD(balances, tickers) as any
 
-    this.log(formatBalances(cryptoBalances, toUSD(cryptoBalances, tickers)));
+    console.log(formatBalances(cryptoBalances, toUSD(cryptoBalances, tickers)));
 
     callback();
   })
 
 vorpal
-  .command('diversify <amount> <fromCoin>', 'split your coin into n top coins by volume')
+  .command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
   .alias('split')
-  .option('-n, --into [n]', 'amount of top coins to deversify into (default = 30)')
+  .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
   .action(async function diversify(args, callback) {
     const params = {
       amount: parseFloat(args.amount),
@@ -55,7 +55,7 @@ vorpal
   })
 
 vorpal
-  .command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'trade fromCoin toCoin on currency pair')
+  .command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
   .action(async function doTrade(args, callback) {
     const params = {
       amount: parseFloat(args.amount),
@@ -90,7 +90,7 @@ vorpal
   })
 
 vorpal
-  .command('pairs')
+  .command('pairs', 'List all the currency pairs on the exchange.')
   .action(async function pairs(args, callback) {
     const tickers = await api.tickers();
     this.log(formatPairs(tickers))
