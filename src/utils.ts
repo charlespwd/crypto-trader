@@ -1,6 +1,8 @@
+import './types/api';
 import * as R from 'ramda'
-export const sellRate = (currencyPair) => R.path([currencyPair, 'highestBid'])
-export const buyRate = (currencyPair) => R.path([currencyPair, 'lowestAsk'])
+
+export const sellRate = (currencyPair, tickers: Tickers) => tickers[currencyPair].highestBid
+export const buyRate = (currencyPair, tickers: Tickers) => tickers[currencyPair].lowestAsk
 export const sleep = ms => new Promise(r => setTimeout(r, ms))
 export const nonZeroBalances = R.pipe(
   R.map(parseFloat),

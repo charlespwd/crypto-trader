@@ -1,3 +1,4 @@
+import './types/api'
 import * as request from 'request-promise-native'
 import * as crypto from 'crypto'
 import * as R from 'ramda'
@@ -34,19 +35,19 @@ function handleResponse(rawData) {
   if (data.error) {
     throw new Error(data.error)
   } else {
-    return data;
+    return data
   }
 }
 
 async function makeRequest(params) {
-  console.log(`API CALL: ${JSON.stringify(params)}`);
+  console.log(`API CALL: ${JSON.stringify(params)}`)
   try {
-    return handleResponse(await request(params));
+    return handleResponse(await request(params))
   } catch (e) {
     if (e.error) {
       throw new Error(JSON.parse(e.error).error)
     }
-    throw e;
+    throw e
   }
 }
 
@@ -63,7 +64,7 @@ function post(command, options = {}): Promise<object> {
     },
   }
 
-  return makeRequest(params);
+  return makeRequest(params)
 }
 
 function get(command, options = {}) {
@@ -74,32 +75,88 @@ function get(command, options = {}) {
     url: `${PUBLIC_API}?${query}`
   }
 
-  return makeRequest(params);
+  return makeRequest(params)
 }
 
-const makeTradeCommand = (command) => ({
+const parseResponseOrder = (isBuyOrder) => R.pipe(
+  R.prop('resultingTrades'),
+  R.map(R.pipe(
+    R.prop(isBuyOrder ? 'amount' : 'total'),
+    parseFloat,
+  )),
+  R.sum
+)
+
+const makeTradeCommand = (command) => async ({
   amount,
   currencyPair,
-  fillOrKill = '1',
-  immediateOrCancel = '1',
   rate,
-}) => post(command, {
-  amount,
-  currencyPair,
-  fillOrKill,
-  immediateOrCancel,
-  rate,
-});
+}) => {
+  const toAmount = parseResponseOrder(command === 'buy')
+
+  const response = await post(command, {
+    amount,
+    currencyPair,
+    fillOrKill: '1',
+    immediateOrCancel: '1',
+    rate,
+  })
+
+  return toAmount(response)
+}
 
 async function logged(s, x): Promise<undefined> {
-  console.log(s, x);
+  console.log(s, x)
   return undefined
 }
 
-export default {
-  balances: () => post('returnBalances'),
-  tickers: throttle(() => get('returnTicker'), 1000, { leading: true, trailing: false }),
+function balances(): Promise<Balances> {
+  return post('returnBalances') as Promise<Balances>
+}
+
+interface PoloniexTicker {
+  currencyPair: string
+  last: string
+  lowestAsk: string
+  highestBid: string
+  percentChange: string
+  baseVolume: string
+  quoteVolume: string
+  isFrozen: string
+  '24hrHigh': string
+  '24hrLow': string
+}
+
+interface PoloniexTickers {
+  [currencyPair: string]: PoloniexTicker
+}
+
+async function tickers(): Promise<Tickers> {
+  const tickers: Promise<PoloniexTickers> = await get('returnTicker')
+  return R.mapObjIndexed((ticker: PoloniexTicker, currencyPair: string) => ({
+    last: parseFloat(ticker.last),
+    lowestAsk: parseFloat(ticker.lowestAsk),
+    highestBid: parseFloat(ticker.highestBid),
+    percentChange: parseFloat(ticker.percentChange),
+    baseVolume: parseFloat(ticker.baseVolume),
+    quoteVolume: parseFloat(ticker.quoteVolume),
+    isFrozen: !!parseInt(ticker.isFrozen),
+    '24hrHigh': parseFloat(ticker['24hrHigh']),
+    '24hrLow': parseFloat(ticker['24hrLow']),
+    currencyPair,
+  }), tickers)
+}
+
+interface PoloniexApi extends Api {
+  getBtcToCad(): Promise<number>
+}
+
+const api: PoloniexApi = {
+  balances,
+  tickers: throttle(tickers, 1000, { leading: true, trailing: false }),
   getBtcToCad,
   sell: PROD ? makeTradeCommand('sell') : (x => logged('sell', x)),
   buy: PROD ? makeTradeCommand('buy') : (x => logged('buy', x)),
 }
+
+export default api

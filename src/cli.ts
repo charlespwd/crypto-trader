@@ -66,8 +66,8 @@ vorpal
     const tickers = await api.tickers();
     const ok = await ask(
       `Are you sure you want to trade ${params.amount} ${params.fromCoin} into ${params.toCoin}? \n` +
-      `Current sellRate is ${sellRate(params.pair)(tickers)} ${params.pair.replace('_', '/')}\n` +
-      `Current buyRate is ${buyRate(params.pair)(tickers)} ${params.pair.replace('_', '/')}\n` +
+      `Current sellRate is ${sellRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
+      `Current buyRate is ${buyRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
       `[y/n]`,
       null,
     );
