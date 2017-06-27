@@ -1,13 +1,16 @@
 {
-  "name": "poloniex",
+  "name": "crypto-trader",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "A command line tool for diversifying your portfolio on poloniex.",
+  "main": "lib/index.js",
+  "bin": {
+    "crypto-trader": "bin/crypto-trader.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Charles-Philippe Clermont @charlespwd",
+  "license": "MIT",
+  "engine": {
+    "node": ">=6.10.0"
+  },
   "dependencies": {
     "@types/es6-promise": "^0.0.32",
     "@types/lodash": "^4.14.66",
@@ -32,5 +35,11 @@
     "typescript": "^2.3.4",
     "vorpal": "^1.12.0",
     "yesno": "^0.0.1"
+  },
+  "scripts": {
+    "build": "tsc src/index.ts --outDir lib",
+    "prepublish": "npm run build",
+    "start": "ts-node src/index.ts",
+    "watch": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
   }
 }

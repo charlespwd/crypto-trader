@@ -96,8 +96,8 @@ vorpal
     this.log(formatPairs(tickers))
   })
 
-export default function run() {
+export function run() {
   vorpal
-    .delimiter('crypto $ ')
+    .delimiter('crypto-trader $ ')
     .show()
 };

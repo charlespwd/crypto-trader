@@ -51,7 +51,7 @@ async function makeRequest(params) {
   }
 }
 
-function post(command, options = {}): Promise<object> {
+function post(command, options = {}) {
   const body = getBody(command, options)
 
   const params = {
@@ -110,8 +110,13 @@ async function logged(s, x): Promise<undefined> {
   return undefined
 }
 
-function balances(): Promise<Balances> {
-  return post('returnBalances') as Promise<Balances>
+interface PoloniexBalances {
+  [currency: string]: string
+}
+
+async function balances(): Promise<Balances> {
+  const balances = await post('returnBalances') as PoloniexBalances
+  return R.map(parseFloat, balances)
 }
 
 interface PoloniexTicker {
