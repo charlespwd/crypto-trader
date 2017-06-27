@@ -5,6 +5,7 @@ import trade from './trade'
 import { formatBalances, formatPairs } from './format'
 import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils'
 import * as yesno from 'yesno'
+import stream from './poloniex/ticker-stream'
 const vorpal = require('vorpal')()
 const ask = (question, def) => new Promise(r => {
   yesno.ask(question, def, r);
@@ -94,7 +95,27 @@ vorpal
   .action(async function pairs(args, callback) {
     const tickers = await api.tickers();
     this.log(formatPairs(tickers))
+    callback()
   })
+
+vorpal
+  .command('feed', 'List the ticker feed')
+  .action(async function feed(args, callback) {
+    stream.subscribe('tickers', (args) => {
+      this.log('tickers', args);
+    });
+
+    stream.subscribe('BTC_ETH', (args, kwargs) => {
+      this.log('btc', args);
+    });
+
+    stream.subscribe('trollbox', (args, kwargs) => {
+      this.log('trollbox', args)
+    })
+
+    stream.open();
+  })
+
 
 export default function run() {
   vorpal
