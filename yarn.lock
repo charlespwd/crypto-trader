@@ -24,9 +24,9 @@
   version "4.3.1"
   resolved "https://registry.yarnpkg.com/@types/query-string/-/query-string-4.3.1.tgz#59ea5c75d425817370158789aa4f6197e5abd987"
 
-"@types/ramda@^0.24.0":
-  version "0.24.0"
-  resolved "https://registry.yarnpkg.com/@types/ramda/-/ramda-0.24.0.tgz#95105907f05c85ce1e55f3c013bfb93f4afc7c6c"
+"@types/ramda@^0.24.7":
+  version "0.24.7"
+  resolved "https://registry.yarnpkg.com/@types/ramda/-/ramda-0.24.7.tgz#4d3c3696e019acd63486e1119f1067c9d59da8e8"
 
 "@types/request-promise-native@^1.0.5":
   version "1.0.5"
