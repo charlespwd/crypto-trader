@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as strategy from './strategy'
-import api from './api'
+import api, { coinbase } from './api'
 import trade from './trade'
 import { formatBalances, formatPairs } from './format'
 import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils'
@@ -10,6 +10,16 @@ const ask = (question, def) => new Promise(r => {
   yesno.ask(question, def, r);
 });
 
+cli.command('spent', 'Display the total amount spent for buying crypto')
+  .action(async function test(args, callback) {
+    const totalSpent = await coinbase.totalSpent();
+    const rate = 0.79;
+    const totalUSD = 0.79 * totalSpent;
+    console.log(totalSpent.toFixed(2) + ' CAD')
+    console.log(totalUSD.toFixed(2) + ' USD')
+    callback();
+  })
+
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .action(async function getBalances(args, callback) {
@@ -18,7 +28,13 @@ cli.command('balances [coins...]', 'Display your current balances.')
     const tickers = await tp
     const balances = nonZeroBalances(await b as any) as any
     const cryptoBalances = args.coins
-      ? R.pick(R.map(R.toUpper, args.coins), balances) as any
+      ? R.pick(
+        R.map(
+          R.toUpper,
+          args.coins
+        ) as string[],
+        balances
+      ) as any
       : balances
     const usdBalances = toUSD(balances, tickers) as any
 

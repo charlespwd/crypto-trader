@@ -17,7 +17,7 @@ interface Balances {
 
 export function formatBalances(balances: Object, usdBalances: Object) {
   const table = new Table({
-    head: ['Currency', 'Value'],
+    head: ['Currency', 'Value', 'USD'],
   })
 
   const pairs = pipe(
@@ -30,7 +30,7 @@ export function formatBalances(balances: Object, usdBalances: Object) {
   )(balances)
 
   for (const [currency, amount] of pairs as any) {
-    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency]} USD`])
+    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency] || '??'} USD`])
   }
 
   table.push(['Total', '-', sum(values(usdBalances) as number[]) + ' USD'])
