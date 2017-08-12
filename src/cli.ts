@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as strategy from './strategy'
-import api, { coinbase } from './api'
+import './types/api';
+import api, { poloniex, coinbase } from './api'
 import trade from './trade'
 import { formatBalances, formatPairs } from './format'
 import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils'
@@ -10,21 +11,20 @@ const ask = (question, def) => new Promise(r => {
   yesno.ask(question, def, r);
 });
 
-cli.command('spent', 'Display the total amount spent for buying crypto')
-  .action(async function test(args, callback) {
-    const totalSpent = await coinbase.totalSpent();
-    const rate = 0.79;
-    const totalUSD = 0.79 * totalSpent;
-    console.log(totalSpent.toFixed(2) + ' CAD')
-    console.log(totalUSD.toFixed(2) + ' USD')
-    callback();
-  })
+function getBalances(exchange: string = 'poloniex'): Promise<Balances> {
+  switch (exchange) {
+    case 'poloniex': return poloniex.balances();
+    case 'coinbase': return coinbase.balances();
+    default: throw new Error('Unsupported exchange');
+  }
+}
 
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
-  .action(async function getBalances(args, callback) {
+  .option('-x, --exchange [x]', 'The name of the exchange to query. (default = poloniex)')
+  .action(async function cliBalances(args: any, callback) {
     const tp = api.tickers()
-    const b = api.balances()
+    const b = getBalances(args.options.exchange);
     const tickers = await tp
     const balances = nonZeroBalances(await b as any) as any
     const cryptoBalances = args.coins
@@ -102,11 +102,24 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     }
   })
 
+cli.command('amount-invested', 'Display the total amount spent for buying crypto')
+  .alias('spent')
+  .action(async function test(args, callback) {
+    const totalSpent = await coinbase.totalSpent();
+    const rate = 0.75;
+    const totalUSD = rate * totalSpent;
+    console.log('')
+    console.log(totalSpent.toFixed(2) + ' CAD')
+    console.log(totalUSD.toFixed(2) + ' USD')
+    callback();
+  })
+
 cli.command('pairs', 'List all the currency pairs on the exchange.')
   .action(async function pairs(args, callback) {
     const tickers = await api.tickers();
     this.log(formatPairs(tickers))
   })
+
 
 export function run() {
   cli.delimiter('crypto-trader $ ')
