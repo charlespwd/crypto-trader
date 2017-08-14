@@ -5,6 +5,11 @@ import * as R from 'ramda'
 import { throttle } from 'lodash'
 import * as qs from 'query-string'
 import { PROD } from '../constants'
+import Queue from '../queue'
+
+const API_LIMIT = 6; // calls per second
+const queue = new Queue(API_LIMIT);
+const enqueue = queue.enqueue.bind(queue);
 
 const PUBLIC_API = 'https://poloniex.com/public'
 const TRADING_API = 'https://poloniex.com/tradingApi'
@@ -72,7 +77,7 @@ function get(command, options = {}) {
     url: `${PUBLIC_API}?${query}`
   }
 
-  return makeRequest(params)
+  return enqueue(R.partial(makeRequest, [params]));
 }
 
 const parseResponseOrder = (isBuyOrder) => R.pipe(
@@ -91,13 +96,15 @@ const makeTradeCommand = (command) => async ({
 }) => {
   const toAmount = parseResponseOrder(command === 'buy')
 
-  const response = await post(command, {
+  const params = {
     amount,
     currencyPair,
     fillOrKill: '1',
     immediateOrCancel: '1',
     rate,
-  })
+  }
+
+  const response = await enqueue(R.partial(post, [command, params]))
 
   return toAmount(response)
 }
@@ -135,7 +142,7 @@ interface PoloniexTickers {
 }
 
 async function tickers(): Promise<Tickers> {
-  const tickers: Promise<PoloniexTickers> = await get('returnTicker')
+  const tickers = await get('returnTicker') as PoloniexTickers
   return R.mapObjIndexed((ticker: PoloniexTicker, currencyPair: string) => ({
     last: parseFloat(ticker.last),
     lowestAsk: parseFloat(ticker.lowestAsk),

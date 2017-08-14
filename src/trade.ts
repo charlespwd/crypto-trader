@@ -3,6 +3,7 @@ import { buyRate, sellRate } from './utils'
 import api from './api'
 import { sleep } from './utils'
 import { PROD } from './constants'
+import { enqueue } from './queue';
 
 // Some definitons, for a currencyPair BTC_ETH
 // amount = (price in ETH)
@@ -36,7 +37,7 @@ function getTotal(isBuyOrder: boolean, amount: number, rate: number): number {
     : amount * rate
 }
 
-function successfulResponse(isBuying, amount, total, rate) {
+async function successfulResponse(isBuying, amount, total, rate) {
   return isBuying ? amount : total
 }
 
@@ -60,7 +61,7 @@ export default async function trade(fromAmount: number, fromCoin: string, toCoin
 
     return PROD
       ? await tradeFn({ amount: amount.toString(), currencyPair, rate: rate.toString() })
-      : successfulResponse(isBuying, amount, total, rate)
+      : await enqueue(R.partial(successfulResponse, [isBuying, amount, total, rate])) as number;
   } catch(e) {
     console.log(`Failed to ${isBuying ? 'buy' : 'sell'} ${toCoin}, retry count: ${n}, retrying in 2s`)
     console.error(e)

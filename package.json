@@ -25,6 +25,7 @@
     "lodash": "^4.17.4",
     "node-fetch": "^1.7.1",
     "nodemon": "^1.11.0",
+    "progress": "^2.0.0",
     "query-string": "^4.3.4",
     "rambda": "^0.7.0",
     "ramda": "^0.24.1",

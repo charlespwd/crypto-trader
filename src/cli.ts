@@ -1,11 +1,12 @@
 import * as R from 'ramda'
+import * as yesno from 'yesno'
 import * as strategy from './strategy'
 import './types/api';
 import api, { poloniex, coinbase } from './api'
 import trade from './trade'
 import { formatBalances, formatPairs } from './format'
 import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils'
-import * as yesno from 'yesno'
+
 const cli = require('vorpal')()
 const ask = (question, def) => new Promise(r => {
   yesno.ask(question, def, r);
