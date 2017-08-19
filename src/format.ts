@@ -18,6 +18,7 @@ interface Balances {
 export function formatBalances(balances: Object, usdBalances: Object) {
   const table = new Table({
     head: ['Currency', 'Value', 'USD'],
+    colAligns: ['left', 'right', 'right'],
   })
 
   const pairs = pipe(
@@ -25,15 +26,14 @@ export function formatBalances(balances: Object, usdBalances: Object) {
     sortBy(pipe(
       prop('0'),
       x => usdBalances[x as string],
-      negate,
     ) as any)
   )(balances)
 
   for (const [currency, amount] of pairs as any) {
-    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency] || '??'} USD`])
+    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency].toFixed(2) || '??'} USD`])
   }
 
-  table.push(['Total', '-', sum(values(usdBalances) as number[]) + ' USD'])
+  table.push(['Total', '-', sum(values(usdBalances) as number[]).toFixed(2) + ' USD'])
 
   return table.toString()
 }
