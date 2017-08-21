@@ -187,10 +187,10 @@ cli.command('summary', 'Displays your portfolio summary.')
     callback();
   })
 
-cli.command('pairs', 'List all the currency pairs on the exchange.')
+cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
   .action(async function pairs(args, callback) {
     const tickers = await api.tickers();
-    this.log(formatPairs(tickers))
+    this.log(formatPairs(tickers, args.currencies))
   })
 
 

@@ -1,14 +1,22 @@
 import * as Table from 'cli-table'
 import * as R from 'ramda'
 const {
-  sum,
-  values,
-  toPairs,
-  pipe,
-  sortBy,
-  prop,
-  negate,
+  F,
+  contains,
+  flatten,
+  intersection,
+  isEmpty,
+  isNil,
   map,
+  negate,
+  pipe,
+  prop,
+  reject,
+  sortBy,
+  sum,
+  toPairs,
+  toUpper,
+  values,
 } = R
 
 interface Balances {
@@ -38,12 +46,20 @@ export function formatBalances(balances: Object, usdBalances: Object) {
   return table.toString()
 }
 
-export function formatPairs(tickers: object) {
+export function formatPairs(tickers: object, currencies: string[]) {
   const head = ['currencyPair', 'last', 'lowestAsk', 'highestBid', 'percentChange', 'baseVolume']
   const table = new Table({ head })
+  const toBeRejected = isNil(currencies)
+    ? F
+    : pipe(
+      prop('0'),
+      (pair: string) => intersection((currencies || []).map(toUpper), pair.split('_').concat(pair)),
+      isEmpty,
+    );
 
   const pairs = pipe(
     toPairs,
+    reject(toBeRejected),
     map(([currencyPair, props]) => ({
       ...props,
       currencyPair,
