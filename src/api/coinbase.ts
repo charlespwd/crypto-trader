@@ -1,4 +1,5 @@
 import '../types/api';
+import * as request from 'request-promise-native'
 import { Client } from 'coinbase';
 import { promisify } from 'util';
 import * as R from 'ramda';
@@ -12,6 +13,13 @@ const client = new Client({
 
 const getAccount = promisify(client.getAccount.bind(client));
 const getAccounts = promisify(client.getAccounts.bind(client));
+const accountsByCurrency = R.pipe(
+  R.filter(R.eqProps('type', { 'type': 'wallet' })),
+  R.indexBy(R.prop('currency')),
+);
+const accounts = (async () => {
+  return accountsByCurrency(await getAccounts({}));
+})()
 
 interface CoinbaseBalance {
   amount: string,
@@ -40,7 +48,6 @@ const toTotal = R.pipe(
 
 async function totalSpent(): Promise<number> {
   const accountData = await getAccounts({});
-  console.log(accountData[0].getTransactions);
 
   let txs = [];
   for (const accountD of accountData) {
@@ -53,15 +60,30 @@ async function totalSpent(): Promise<number> {
   return toTotal(txs);
 }
 
-interface CoinbaseApi {
-  balances(): Promise<Balances>,
+async function buy(options: TradeOptions): Promise<number> {
+  throw new Error('Not implemented');
+
+  // getAccount(await accounts)
+}
+
+async function sell(options: TradeOptions): Promise<number> {
+  throw new Error('Not implemented');
+}
+
+async function tickers(): Promise<Tickers> {
+  throw new Error('Not implemented');
+}
+
+interface CoinbaseApi extends Api {
   totalSpent(): Promise<number>,
-  // transactions: Promise<Transactions>
 }
 
 const api: CoinbaseApi = {
   balances,
   totalSpent,
+  tickers,
+  sell,
+  buy,
 }
 
 export default api;

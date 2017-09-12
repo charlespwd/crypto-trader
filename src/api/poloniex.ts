@@ -6,6 +6,7 @@ import { throttle } from 'lodash'
 import * as qs from 'query-string'
 import { PROD } from '../constants'
 import Queue from '../queue'
+import { timeout } from '../utils';
 
 const API_LIMIT = 6; // calls per second
 const queue = new Queue(API_LIMIT);
@@ -18,13 +19,13 @@ const API_SECRET = process.env.POLONIEX_API_SECRET
 
 if (!API_SECRET || !API_KEY) throw new Error('POLONIEX_API_KEY or POLONIEX_API_SECRET missing.');
 
-function signature(body) {
+function signature(body: any) {
   const hmac = crypto.createHmac('sha512', API_SECRET)
   hmac.update(body)
   return hmac.digest('hex')
 }
 
-function getBody(command, options) {
+function getBody(command: string, options: any) {
   const body = R.merge(options, {
     nonce: Date.now() * 1000,
     command,
@@ -32,7 +33,7 @@ function getBody(command, options) {
   return qs.stringify(body)
 }
 
-function handleResponse(rawData) {
+function handleResponse(rawData: string) {
   const data = JSON.parse(rawData)
   if (data.error) {
     throw new Error(data.error)
@@ -41,19 +42,14 @@ function handleResponse(rawData) {
   }
 }
 
-async function makeRequest(params) {
-  console.log(`API CALL: ${JSON.stringify(params)}`)
-  try {
-    return handleResponse(await request(params))
-  } catch (e) {
-    if (e.error) {
-      throw new Error(JSON.parse(e.error).error)
-    }
-    throw e
-  }
+async function makeRequest(params: any) {
+  return handleResponse(await Promise.race([
+    request(params),
+    timeout(10000),
+  ]));
 }
 
-function post(command, options = {}) {
+function post(command: string, options = {}) {
   const body = getBody(command, options)
 
   const params = {
@@ -69,7 +65,7 @@ function post(command, options = {}) {
   return makeRequest(params)
 }
 
-function get(command, options = {}) {
+function get(command: string, options = {}) {
   const query = qs.stringify(R.merge({ command }, options))
 
   const params = {
@@ -80,7 +76,7 @@ function get(command, options = {}) {
   return enqueue(R.partial(makeRequest, [params]));
 }
 
-const parseResponseOrder = (isBuyOrder) => R.pipe(
+const parseResponseOrder = (isBuyOrder: boolean) => R.pipe(
   R.prop('resultingTrades'),
   R.map(R.pipe(
     R.prop(isBuyOrder ? 'amount' : 'total'),
@@ -89,11 +85,11 @@ const parseResponseOrder = (isBuyOrder) => R.pipe(
   R.sum
 )
 
-const makeTradeCommand = (command) => async ({
+const makeTradeCommand = (command: string) => async ({
   amount,
   currencyPair,
   rate,
-}) => {
+}: any) => {
   const toAmount = parseResponseOrder(command === 'buy')
 
   const params = {
@@ -109,19 +105,28 @@ const makeTradeCommand = (command) => async ({
   return toAmount(response)
 }
 
-async function logged(s, x): Promise<undefined> {
+async function logged(s: any, x: any): Promise<undefined> {
   console.log(s, x)
   return undefined
 }
 
-// Balances is [string]: number, this is the intermediate step.
-interface PoloniexBalances {
-  [currency: string]: string
+interface PoloniexCompleteBalance {
+  available: string;
+  onOrders: string;
+  btcValue: string;
+}
+
+interface PoloniexCompleteBalances {
+  [currency: string]: PoloniexCompleteBalance
 }
 
 async function balances(): Promise<Balances> {
-  const balances = await post('returnBalances') as PoloniexBalances
-  return R.map(parseFloat, balances) as Balances
+  const balances = await post('returnCompleteBalances', { account: 'all' }) as PoloniexCompleteBalances
+  const transform = R.pipe(
+    R.map(R.map(parseFloat)) as any,
+    R.map((x: PoloniexCompleteBalance) => x.available + x.onOrders) as any,
+  );
+  return transform(balances) as Balances
 }
 
 interface PoloniexTicker {

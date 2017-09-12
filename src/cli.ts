@@ -1,36 +1,34 @@
 import * as R from 'ramda'
-import * as yesno from 'yesno'
 import * as strategy from './strategy'
-import * as Table from 'cli-table'
+const yesno = require('yesno')
+const Table = require('cli-table')
 import './types/api';
 import api, { poloniex, coinbase } from './api'
 import trade from './trade'
 import { formatBalances, formatPairs } from './format'
 import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils'
+import { getRate } from './fiat';
 
 const cli = require('vorpal')()
-const ask = (question, def) => new Promise(r => {
+const ask = (question: string, def: any) => new Promise(r => {
   yesno.ask(question, def, r);
 });
 
-const exchangeMethod = method => (exchange: string = 'poloniex'): Promise<Balances> => {
+function ex(exchange: string): Api {
   switch (exchange) {
-    case 'poloniex': return poloniex[method]();
-    case 'coinbase': return coinbase[method]();
+    case 'poloniex': return poloniex;
+    case 'coinbase': return coinbase;
     default: throw new Error('Unsupported exchange');
   }
 }
 
-const getBalances = exchangeMethod('balances');
-const getTickers = exchangeMethod('tickers');
-
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .option('-x, --exchange [x]', 'The name of the exchange to query. (default = poloniex)')
-  .action(async function cliBalances(args: any, callback) {
-    const { exchange } = args.options;
-    const tp = getTickers(exchange)
-    const bp = getBalances(exchange);
+  .action(async function cliBalances(args: any, callback: Function) {
+    const exchange = args.options.x || 'poloniex';
+    const tp = ex(exchange).tickers();
+    const bp = ex(exchange).balances();
     const tickers = await tp
     const balances = nonZeroBalances(await bp as any) as any
     const cryptoBalances = args.coins
@@ -52,7 +50,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
 cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
   .alias('split')
   .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
-  .action(async function diversify(args, callback) {
+  .action(async function diversify(args: any, callback: Function) {
     const params = {
       amount: parseFloat(args.amount),
       n: args.options.into ? parseInt(args.options.into) : 30,
@@ -75,7 +73,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
   })
 
 cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
-  .action(async function doTrade(args, callback) {
+  .action(async function doTrade(args: any, callback: Function) {
     const params = {
       amount: parseFloat(args.amount),
       fromCoin: args.fromCoin.toUpperCase(),
@@ -108,20 +106,20 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     }
   })
 
-const pp = x => x.toFixed(2)
+const pp = (x: number) => x.toFixed(2)
 
 cli.command('summary', 'Displays your portfolio summary.')
   .option('-r, --rate [rate]', 'the CAD/USD rate.')
   .option('-b, --buy-rate [buyRate]', 'the CAD/USD rate at which you bought.')
   .option('-c, --current-rate [currentRate]', 'the CAD/USD rate today.')
-  .action(async function test(args, callback) {
+  .action(async function test(args: any, callback: Function) {
     const table = new Table({
       head: ['Description', 'CAD', 'USD'],
       colAligns: ['left', 'right', 'right'],
     });
     const [tickers, balances, totalSpent] = await Promise.all([
-      getTickers('poloniex'),
-      getBalances('poloniex'),
+      ex('poloniex').tickers(),
+      ex('poloniex').balances(),
       coinbase.totalSpent(),
     ]);
     const usdBalances = toUSD(balances, tickers) as any
@@ -188,13 +186,33 @@ cli.command('summary', 'Displays your portfolio summary.')
   })
 
 cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
-  .action(async function pairs(args, callback) {
+  .action(async function pairs(args: any, callback: Function) {
     const tickers = await api.tickers();
     this.log(formatPairs(tickers, args.currencies))
+  })
+
+cli.command('quote [currency]', 'Get a quote for a currency in USD')
+  .action(async function quote(args: any, callback: Function) {
+    const currency = args.currency.toUpperCase() as string;
+    if (R.contains(currency, ['CAD', 'EUR'])) {
+      const rate = await getRate(currency, 'USD');
+      this.log(`1 ${currency} = ${rate} USD`);
+    } else {
+      const rate = await getRate('CAD', 'USD');
+      const tickers = await api.tickers();
+      const balances = {
+        [currency]: 1,
+      };
+      const usd = toUSD(balances, tickers)[currency.toUpperCase()];
+      const cad = usd / rate;
+      this.log(`1 ${currency} = ${usd.toFixed(5)} USD`);
+      this.log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
+    }
   })
 
 
 export function run() {
   cli.delimiter('crypto-trader $ ')
+    .history('crypto-trader-ching-ching')
     .show()
 };

@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import api from './api'
 import trade from './trade'
 import { sleep } from './utils'
-import * as ProgressBar from 'progress';
+const ProgressBar = require('progress');
 
 const BLACKLIST = [
   'BTC',
@@ -14,7 +14,7 @@ const BLACKLIST = [
 ]
 const log = console.log.bind(console)
 
-export async function execute(fromAmount, n = 30, fromCoin = 'ETH') {
+export async function execute(fromAmount: number, n = 30, fromCoin = 'ETH') {
   const fromAmountToBuyAsBTC = fromAmount * (n - 1) / n
   const btcAmount = fromCoin !== 'BTC'
     ? await trade(fromAmountToBuyAsBTC, fromCoin, 'BTC', `BTC_${fromCoin}`)
@@ -32,7 +32,7 @@ export async function execute(fromAmount, n = 30, fromCoin = 'ETH') {
   const topCoins = (await getTopByVolume())
     .filter(x => !R.contains(x, BLACKLIST))
     .filter(x => x !== fromCoin)
-  const coinsToBuy = R.take(n, topCoins);
+  const coinsToBuy = R.take(n, topCoins) as string[];
   const N = coinsToBuy.length; // because it might be smaller than N
 
   const btcValueOfCoin = btcAmount / (N - 1)
@@ -71,9 +71,9 @@ export async function getTopByVolume() {
   return topByVolume(tickers)
 }
 
-const startsWith = s => x => x.startsWith(s)
+const startsWith = (s: string) => (x: string) => x.startsWith(s)
 
-const toBool = x => !!parseInt(x)
+const toBool = (x: any) => !!parseInt(x)
 const sortByVolume = R.sortBy(R.pipe(R.path(['1', 'baseVolume']), parseFloat, R.negate))
 const removeFrozen = R.filter(R.pipe(R.path(['1', 'isFrozen']), toBool, R.not))
 const startsWithBTC = R.filter(R.pipe(R.prop('0'), startsWith('BTC')))

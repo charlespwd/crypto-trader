@@ -1,12 +1,14 @@
 import * as EventEmitter from 'events';
 import { sleep } from './utils';
 
-const success = (token) => token + 'success';
-const failure = (token) => token + 'failure';
+const success = (token: any) => token + 'success';
+const failure = (token: any) => token + 'failure';
+
+type TokenFunctionPair = [string, Function];
 
 export default class Queue {
   private limit = 6;
-  private queue = [];
+  private queue: TokenFunctionPair[] = [];
   private emitter = new EventEmitter();
   private interval = 1000 / 6;
   private n = 0;
@@ -27,12 +29,12 @@ export default class Queue {
         this.emitter.removeListener(failure(token), onFailure);
       }
 
-      const onSuccess = (result) => {
+      const onSuccess = (result: any) => {
         resolve(result);
         removeListeners();
       }
 
-      const onFailure = (result) => {
+      const onFailure = (result: any) => {
         reject(result);
         removeListeners();
       }
@@ -47,8 +49,8 @@ export default class Queue {
     if (n < limit && queue.length > 0) {
       const [token, f] = queue.shift();
       this.n = n + 1;
-      f().then(result => emitter.emit(success(token), result))
-        .catch(rejection => emitter.emit(failure(token), rejection));
+      f().then((result: any) => emitter.emit(success(token), result))
+        .catch((rejection: any) => emitter.emit(failure(token), rejection));
     } else {
       await sleep(interval);
       this.n = Math.max(0, n - 1);

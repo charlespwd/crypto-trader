@@ -26,6 +26,7 @@ declare type TradeOptions = {
 }
 
 declare interface Api {
+  [method: string]: Function;
   tickers(): Promise<Tickers>;
   balances(): Promise<Balances>;
   sell(options: TradeOptions): Promise<number>;
