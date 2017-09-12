@@ -11,13 +11,14 @@
   "engine": {
     "node": ">=8.0.0"
   },
+  "scripts": {
+    "devel": "yarn watch",
+    "package": "tsc src/index.ts --outDir lib",
+    "prepublish": "npm run build",
+    "start": "ts-node src/index.ts",
+    "watch": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
+  },
   "dependencies": {
-    "@types/es6-promise": "^0.0.32",
-    "@types/lodash": "^4.14.66",
-    "@types/node": "^8.0.2",
-    "@types/query-string": "^4.3.1",
-    "@types/ramda": "^0.24.7",
-    "@types/request-promise-native": "^1.0.5",
     "autobahn": "^17.5.2",
     "cli-table": "^0.3.1",
     "coinbase": "^2.0.6",
@@ -32,16 +33,19 @@
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4",
     "sql.js": "^0.4.0",
-    "ts-node": "^3.1.0",
-    "typescript": "^2.3.4",
     "vorpal": "^1.12.0",
     "yesno": "^0.0.1"
   },
-  "scripts": {
-    "build": "tsc src/index.ts --outDir lib",
-    "devel": "yarn watch",
-    "prepublish": "npm run build",
-    "start": "ts-node src/index.ts",
-    "watch": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
+  "devDependencies": {
+    "@types/es6-promise": "^0.0.32",
+    "@types/lodash": "^4.14.66",
+    "@types/node": "^8.0.2",
+    "@types/query-string": "^4.3.1",
+    "@types/ramda": "^0.24.7",
+    "@types/request-promise-native": "^1.0.5",
+    "typescript": "^2.3.4",
+    "ts-node": "^3.1.0",
+    "tslint": "^5.7.0",
+    "tslint-config-airbnb": "^5.2.1"
   }
 }
