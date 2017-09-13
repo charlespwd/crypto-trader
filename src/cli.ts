@@ -6,7 +6,7 @@ import './types/api';
 import api, { poloniex, coinbase } from './api';
 import trade from './trade';
 import { formatBalances, formatPairs } from './format';
-import { nonZeroBalances, toUSD, sellRate, buyRate } from './utils';
+import { nonZeroBalances, toUSD } from './utils';
 import { getRate } from './fiat';
 
 const cli = require('vorpal')();
@@ -14,7 +14,7 @@ const ask = (question: string, def: any) => new Promise((r) => {
   yesno.ask(question, def, r);
 });
 
-function ex(exchange: string): Api {
+function ex(exchange: string = 'poloniex'): Api {
   switch (exchange) {
     case 'poloniex': return poloniex;
     case 'coinbase': return coinbase;
@@ -24,9 +24,9 @@ function ex(exchange: string): Api {
 
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
-  .option('-x, --exchange [x]', 'The name of the exchange to query. (default = poloniex)')
+  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
   .action(async (args: any, callback: Function) => {
-    const exchange = args.options.x || 'poloniex';
+    const exchange = args.options.exchange;
     const tp = ex(exchange).tickers();
     const bp = ex(exchange).balances();
     const tickers = await tp;
@@ -50,11 +50,13 @@ cli.command('balances [coins...]', 'Display your current balances.')
 cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
   .alias('split')
   .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
+  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
   .action(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
-      n: args.options.into ? parseInt(args.options.into, 10) : 30,
+      exchange: args.options.exchange,
       fromCoin: args.fromCoin.toUpperCase(),
+      n: args.options.into ? parseInt(args.options.into, 10) : 30,
     };
     const ok = await ask(
       `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.n} top coins by volume? [y/n]`,
@@ -62,6 +64,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
     );
     if (ok) {
       await strategy.execute(
+        ex(params.exchange),
         params.amount,
         params.n,
         params.fromCoin,
@@ -74,7 +77,9 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
 
 cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
   .action(async function doTrade(args: any, callback: Function) {
+    const api = ex(args.options.exchange);
     const params = {
+      exchange: api,
       amount: parseFloat(args.amount),
       fromCoin: args.fromCoin.toUpperCase(),
       toCoin: args.toCoin.toUpperCase(),
@@ -83,8 +88,8 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     const tickers = await api.tickers();
     const ok = await ask(
       `Are you sure you want to trade ${params.amount} ${params.fromCoin} into ${params.toCoin}? \n` +
-      `Current sellRate is ${sellRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
-      `Current buyRate is ${buyRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
+      `Current sellRate is ${api.sellRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
+      `Current buyRate is ${api.buyRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
       `[y/n]`,
       null,
     );
@@ -92,6 +97,7 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     if (ok) {
       try {
         const result = await trade(
+          params.exchange,
           params.amount,
           params.fromCoin,
           params.toCoin,

@@ -17,6 +17,7 @@ const {
   toPairs,
   toUpper,
   values,
+  valuesIn,
 } = R;
 
 interface Balances {
@@ -41,7 +42,7 @@ export function formatBalances(balances: Object, usdBalances: Object) {
     table.push([currency, `${amount} ${currency}`, `${usdBalances[currency].toFixed(2) || '??'} USD`]);
   }
 
-  table.push(['Total', '-', sum(values(usdBalances) as number[]).toFixed(2) + ' USD']);
+  table.push(['Total', '-', sum(valuesIn(usdBalances)).toFixed(2) + ' USD']);
 
   return table.toString();
 }
@@ -59,7 +60,7 @@ export function formatPairs(tickers: object, currencies: string[]) {
 
   const pairs = pipe(
     toPairs,
-    reject(toBeRejected),
+    (x: any[]) => reject(toBeRejected, x),
     map(([currencyPair, props]) => ({
       ...props,
       currencyPair,

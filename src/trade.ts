@@ -1,8 +1,8 @@
 import * as R from 'ramda';
-import { buyRate, sellRate, sleep } from './utils';
-import api from './api';
+import { sleep } from './utils';
 import { PROD } from './constants';
 import { enqueue } from './queue';
+import './types/api';
 
 // Some definitons, for a currencyPair BTC_ETH
 // amount = (price in ETH)
@@ -18,10 +18,10 @@ const isBuyOrder = (fromCoin, toCoin, currencyPair) => {
   }
 };
 
-function getRate(isBuyOrder: boolean, currencyPair: string, tickers: Tickers): number {
+function getRate(api: Api, isBuyOrder: boolean, currencyPair: string, tickers: Tickers): number {
   return isBuyOrder
-    ? buyRate(currencyPair, tickers)
-    : sellRate(currencyPair, tickers);
+    ? api.buyRate(currencyPair, tickers)
+    : api.sellRate(currencyPair, tickers);
 }
 
 function getAmount(isBuyOrder: boolean, amount: number, rate: number): number {
@@ -45,13 +45,13 @@ async function successfulResponse(isBuying, amount, total, rate) {
 // | ------   | ----   | ---------- | ----------
 // | BTC      | ETH    | buy        | ETH (amount)
 // | ETH      | BTC    | sell       | BTC (total)
-export default async function trade(fromAmount: number, fromCoin: string, toCoin: string, currencyPair: string, n = 0): Promise<number> {
+export default async function trade(api: Api, fromAmount: number, fromCoin: string, toCoin: string, currencyPair: string, n = 0): Promise<number> {
   const isBuying = isBuyOrder(fromCoin, toCoin, currencyPair);
   const tradeFn = isBuying ? api.buy : api.sell;
 
   try {
     const tickers = await api.tickers();
-    const rate = getRate(isBuying, currencyPair, tickers);
+    const rate = getRate(api, isBuying, currencyPair, tickers);
     const amount = getAmount(isBuying, fromAmount, rate);
     const total = getTotal(isBuying, fromAmount, rate);
     console.log(`TRADING: ${fromAmount} ${fromCoin} => ${isBuying ? amount : total} ${toCoin}`);
@@ -65,6 +65,6 @@ export default async function trade(fromAmount: number, fromCoin: string, toCoin
     console.log(`Failed to ${isBuying ? 'buy' : 'sell'} ${toCoin}, retry count: ${n}, retrying in 2s`);
     console.error(e);
     await sleep(2000);
-    return trade(fromAmount, fromCoin, toCoin, currencyPair, n + 1);
+    return trade(api, fromAmount, fromCoin, toCoin, currencyPair, n + 1);
   }
 }

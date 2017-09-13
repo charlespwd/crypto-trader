@@ -13,13 +13,6 @@ const client = new Client({
 
 const getAccount = promisify(client.getAccount.bind(client));
 const getAccounts = promisify(client.getAccounts.bind(client));
-const accountsByCurrency = R.pipe(
-  R.filter(R.eqProps('type', { type: 'wallet' })),
-  R.indexBy(R.prop('currency')),
-);
-const accounts = (async () => {
-  return accountsByCurrency(await getAccounts({}));
-})();
 
 interface CoinbaseBalance {
   amount: string;
@@ -41,7 +34,7 @@ async function balances(): Promise<Balances> {
 }
 
 const toTotal = R.pipe(
-  R.filter(R.eqProps('type', { type: 'buy' })),
+  (txs: {}[]) => R.filter(R.eqProps('type', { type: 'buy' }), txs),
   R.map(R.pipe(R.prop('native_amount'), R.prop('amount'), parseFloat)),
   R.sum,
 );
@@ -84,6 +77,12 @@ const api: CoinbaseApi = {
   tickers,
   sell,
   buy,
+  buyRate: () => {
+    throw new Error('not implemented');
+  },
+  sellRate: () => {
+    throw new Error('not implemented');
+  },
 };
 
 export default api;

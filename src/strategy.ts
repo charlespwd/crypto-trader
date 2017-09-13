@@ -1,5 +1,4 @@
 import * as R from 'ramda';
-import api from './api';
 import trade from './trade';
 import { sleep } from './utils';
 const ProgressBar = require('progress');
@@ -14,10 +13,10 @@ const BLACKLIST = [
 ];
 const log = console.log.bind(console);
 
-export async function execute(fromAmount: number, n = 30, fromCoin = 'ETH') {
+export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = 'ETH') {
   const fromAmountToBuyAsBTC = fromAmount * (n - 1) / n;
   const btcAmount = fromCoin !== 'BTC'
-    ? await trade(fromAmountToBuyAsBTC, fromCoin, 'BTC', `BTC_${fromCoin}`)
+    ? await trade(api, fromAmountToBuyAsBTC, fromCoin, 'BTC', `BTC_${fromCoin}`)
     : fromAmount;
 
   if (btcAmount === 0) {
@@ -29,7 +28,7 @@ export async function execute(fromAmount: number, n = 30, fromCoin = 'ETH') {
     log(`SUCCESS: SOLD ${fromAmountToBuyAsBTC} ${fromCoin} for ${btcAmount} BTC`);
   }
 
-  const topCoins = (await getTopByVolume())
+  const topCoins = (await getTopByVolume(api))
     .filter(x => !R.contains(x, BLACKLIST))
     .filter(x => x !== fromCoin);
   const coinsToBuy = R.take(n, topCoins) as string[];
@@ -44,7 +43,7 @@ export async function execute(fromAmount: number, n = 30, fromCoin = 'ETH') {
 
   const unable = [];
   const amounts = coinsToBuy.map(
-    coin => [coin, trade(btcValueOfCoin, 'BTC', coin, `BTC_${coin}`)],
+    coin => [coin, trade(api, btcValueOfCoin, 'BTC', coin, `BTC_${coin}`)],
   );
 
   for (const coinAndAmountPromise of amounts) {
@@ -66,17 +65,15 @@ export async function execute(fromAmount: number, n = 30, fromCoin = 'ETH') {
   }
 }
 
-export async function getTopByVolume() {
+export async function getTopByVolume(api) {
   const tickers = await api.tickers();
   return topByVolume(tickers);
 }
 
-const startsWith = (s: string) => (x: string) => x.startsWith(s);
-
 const toBool = (x: any) => !!parseInt(x, 10);
 const sortByVolume = R.sortBy(R.pipe(R.path(['1', 'baseVolume']), parseFloat, R.negate));
 const removeFrozen = R.filter(R.pipe(R.path(['1', 'isFrozen']), toBool, R.not));
-const startsWithBTC = R.filter(R.pipe(R.prop('0'), startsWith('BTC')));
+const startsWithBTC = R.filter(R.pipe(R.prop('0'), R.startsWith('BTC')));
 
 const topByVolume = R.pipe(
   R.toPairs,
