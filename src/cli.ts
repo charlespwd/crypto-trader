@@ -16,6 +16,7 @@ const ask = (question: string, def: any) => new Promise((r) => {
 
 function ex(exchange: string = 'poloniex'): Api {
   switch (exchange) {
+    case 'pl':
     case 'pn':
     case 'poloniex': return poloniex;
 
@@ -30,6 +31,7 @@ function ex(exchange: string = 'poloniex'): Api {
 
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
+  .alias('b')
   .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
   .action(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
@@ -130,12 +132,16 @@ cli.command('summary', 'Displays your portfolio summary.')
       head: ['Description', 'CAD', 'USD'],
       colAligns: ['left', 'right', 'right'],
     });
-    const [tickers, balances, totalSpent] = await Promise.all([
+    const [pTickers, pBalances, bTickers, bBalances, totalSpent] = await Promise.all([
       ex('poloniex').tickers(),
       ex('poloniex').balances(),
+      ex('bittrex').tickers(),
+      ex('bittrex').balances(),
       coinbase.totalSpent(),
     ]);
-    const usdBalances = toUSD(balances, tickers) as any;
+    const poloUsdBalances = toUSD(pBalances, pTickers);
+    const bittUsdBalances = toUSD(bBalances, bTickers);
+    const usdBalances = R.mergeWith(R.add, poloUsdBalances, bittUsdBalances);
     const estimatedUSDTotal = R.sum(R.values(usdBalances) as number[]);
     const { options } = args;
     const rate = options.rate || 0.79;
@@ -226,7 +232,6 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
       this.log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
     }
   });
-
 
 export function run() {
   cli.delimiter('crypto-trader $ ')
