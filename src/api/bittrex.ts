@@ -4,10 +4,12 @@ import * as crypto from 'crypto';
 import { timeout } from '../utils';
 import {
   map,
-  zipObj,
-  prop,
   merge,
   mergeDeepRight,
+  pipe,
+  prop,
+  zipObj,
+  replace,
 } from 'ramda';
 
 const API_KEY = process.env.BITTREX_API_KEY;
@@ -53,8 +55,59 @@ async function makeRequest(options) {
   ]));
 }
 
-function tickers(): Promise<Tickers> {
-  throw new Error('not implemented');
+interface BittrexMarketSummary {
+  MarketName: string;
+  High: number;
+  Low: number;
+  Volume: number;
+  Last: number;
+  BaseVolume: number;
+  TimeStamp: string;
+  Bid: number;
+  Ask: number;
+  OpenBuyOrders: number;
+  OpenSellOrders: number;
+  PrevDay: number;
+  Created: number;
+}
+
+const toCurrencyPair = pipe(
+  (x: BittrexMarketSummary) => x.MarketName,
+  replace(/-/, '_'),
+);
+
+function toTicker(x: BittrexMarketSummary): Ticker {
+  return {
+    currencyPair: toCurrencyPair(x),
+    last: x.Last,
+    lowestAsk: x.Ask,
+    highestBid: x.Bid,
+    percentChange: (x.Last - x.PrevDay) / x.PrevDay,
+    baseVolume: x.BaseVolume,
+    quoteVolume: x.Volume,
+    isFrozen: false,
+    '24hrHigh': x.High,
+    '24hrLow': x.Low,
+  };
+}
+
+function bittrexSummariesToTickers(
+  summaries: BittrexMarketSummary[],
+): Tickers {
+  const pairs = map(toCurrencyPair, summaries);
+  const tickers = map(toTicker, summaries);
+
+  return zipObj(
+    pairs,
+    tickers,
+  );
+}
+
+async function tickers(): Promise<Tickers> {
+  const result: BittrexMarketSummary[] = await makeRequest({
+    url: requestUrl('public/getmarketsummaries'),
+  });
+  return bittrexSummariesToTickers(result);
 }
 
 interface BittrexBalance {
