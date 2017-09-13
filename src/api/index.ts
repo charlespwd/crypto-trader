@@ -1,8 +1,9 @@
 import poloniex from './poloniex';
 import coinbase from './coinbase';
+import bittrex from './bittrex';
 
-export default poloniex;
 export {
   coinbase,
   poloniex,
+  bittrex,
 };

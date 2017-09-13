@@ -39,6 +39,7 @@ function handleResponse(data) {
 
 async function makeRequest(options) {
   const params = mergeDeepRight(options, {
+    method: 'GET',
     json: true,
     headers: {
       apisign: signature(options.url),
@@ -76,7 +77,6 @@ function bittrexBalancesToBalances(balances: BittrexBalance[]): Balances {
 
 async function balances(): Promise<Balances> {
   const result: BittrexBalance[] = await makeRequest({
-    method: 'GET',
     url: requestUrl('account/getbalances'),
   });
 

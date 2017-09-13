@@ -3,7 +3,7 @@ import * as strategy from './strategy';
 const yesno = require('yesno');
 const Table = require('cli-table');
 import './types/api';
-import api, { poloniex, coinbase } from './api';
+import { poloniex, coinbase, bittrex } from './api';
 import trade from './trade';
 import { formatBalances, formatPairs } from './format';
 import { nonZeroBalances, toUSD } from './utils';
@@ -16,8 +16,14 @@ const ask = (question: string, def: any) => new Promise((r) => {
 
 function ex(exchange: string = 'poloniex'): Api {
   switch (exchange) {
+    case 'pn':
     case 'poloniex': return poloniex;
+
+    case 'cb':
     case 'coinbase': return coinbase;
+
+    case 'br':
+    case 'bittrex': return bittrex;
     default: throw new Error('Unsupported exchange');
   }
 }
@@ -26,20 +32,21 @@ cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
   .action(async (args: any, callback: Function) => {
-    const exchange = args.options.exchange;
-    const tp = ex(exchange).tickers();
-    const bp = ex(exchange).balances();
-    const tickers = await tp;
-    const balances = nonZeroBalances(await bp as any) as any;
+    const api = ex(args.options.exchange);
+    const [tickers, balances] = await Promise.all([
+      api.tickers(),
+      api.balances(),
+    ]);
+    const nzBalances = nonZeroBalances(balances);
     const cryptoBalances = args.coins
       ? R.pick(
         R.map(
           R.toUpper,
           args.coins,
         ) as string[],
-        balances,
+        nzBalances,
       ) as any
-      : balances;
+      : nzBalances;
     const usdBalances = toUSD(balances, tickers) as any;
 
     console.log(formatBalances(cryptoBalances, toUSD(cryptoBalances, tickers)));
@@ -192,13 +199,17 @@ cli.command('summary', 'Displays your portfolio summary.')
   });
 
 cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
+  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
   .action(async function pairs(args: any, callback: Function) {
+    const api = ex(args.options.exchange);
     const tickers = await api.tickers();
     this.log(formatPairs(tickers, args.currencies));
   });
 
 cli.command('quote [currency]', 'Get a quote for a currency in USD')
+  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
   .action(async function quote(args: any, callback: Function) {
+    const api = ex(args.options.exchange);
     const currency = args.currency.toUpperCase() as string;
     if (R.contains(currency, ['CAD', 'EUR'])) {
       const rate = await getRate(currency, 'USD');
