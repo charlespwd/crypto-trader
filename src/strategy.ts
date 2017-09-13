@@ -1,7 +1,6 @@
 import * as R from 'ramda';
 import trade from './trade';
 import { sleep } from './utils';
-const ProgressBar = require('progress');
 
 const BLACKLIST = [
   'BTC',
@@ -9,7 +8,6 @@ const BLACKLIST = [
   'POT',
   'LTC',
   'ETC',
-  'ETH',
 ];
 const log = console.log.bind(console);
 
@@ -37,10 +35,6 @@ export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = '
   const btcValueOfCoin = btcAmount / (N - 1);
   log(`SPLITTING ${btcAmount} BTC into ${N} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
 
-  const bar = new ProgressBar(':bar :current/:total eta: :etas\n', {
-    total: N,
-  });
-
   const unable = [];
   const amounts = coinsToBuy.map(
     coin => [coin, trade(api, btcValueOfCoin, 'BTC', coin, `BTC_${coin}`)],
@@ -56,8 +50,6 @@ export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = '
     } else {
       log(`SUCCESS: BOUGHT ${amount} ${coin} for ${btcValueOfCoin} BTC`);
     }
-
-    bar.tick();
   }
 
   if (unable.length > 0) {
