@@ -13,7 +13,7 @@ export default class Queue {
   private interval = 1000 / 6;
   private n = 0;
 
-  constructor(limit = 6 /* calls per second */) {
+  constructor(limit = 6) {
     this.limit = limit;
     this.interval = 1000 / limit;
     this.start();
@@ -27,17 +27,17 @@ export default class Queue {
       const removeListeners = () => {
         this.emitter.removeListener(success(token), onSuccess);
         this.emitter.removeListener(failure(token), onFailure);
-      }
+      };
 
       const onSuccess = (result: any) => {
         resolve(result);
         removeListeners();
-      }
+      };
 
       const onFailure = (result: any) => {
         reject(result);
         removeListeners();
-      }
+      };
 
       this.emitter.on(success(token), resolve);
       this.emitter.on(failure(token), reject);

@@ -1,2 +1,2 @@
-import { run } from './cli'
-run()
+import { run } from './cli';
+run();

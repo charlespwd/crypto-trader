@@ -12,18 +12,18 @@ declare interface Ticker {
 }
 
 declare interface Tickers {
-  [currencyPair: string]: Ticker
+  [currencyPair: string]: Ticker;
 }
 
 declare interface Balances {
-  [currency: string]: number
+  [currency: string]: number;
 }
 
 declare type TradeOptions = {
   rate: string;
   amount: string;
   currencyPair: string;
-}
+};
 
 declare interface Api {
   [method: string]: Function;

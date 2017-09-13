@@ -1,5 +1,5 @@
-import * as Table from 'cli-table'
-import * as R from 'ramda'
+import * as Table from 'cli-table';
+import * as R from 'ramda';
 const {
   F,
   contains,
@@ -17,38 +17,38 @@ const {
   toPairs,
   toUpper,
   values,
-} = R
+} = R;
 
 interface Balances {
-  [currency: string]: string,
+  [currency: string]: string;
 }
 
 export function formatBalances(balances: Object, usdBalances: Object) {
   const table = new Table({
     head: ['Currency', 'Value', 'USD'],
     colAligns: ['left', 'right', 'right'],
-  })
+  });
 
   const pairs = pipe(
     toPairs,
     sortBy(pipe(
       prop('0'),
       x => usdBalances[x as string],
-    ) as any)
-  )(balances)
+    ) as any),
+  )(balances);
 
   for (const [currency, amount] of pairs as any) {
-    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency].toFixed(2) || '??'} USD`])
+    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency].toFixed(2) || '??'} USD`]);
   }
 
-  table.push(['Total', '-', sum(values(usdBalances) as number[]).toFixed(2) + ' USD'])
+  table.push(['Total', '-', sum(values(usdBalances) as number[]).toFixed(2) + ' USD']);
 
-  return table.toString()
+  return table.toString();
 }
 
 export function formatPairs(tickers: object, currencies: string[]) {
-  const head = ['currencyPair', 'last', 'lowestAsk', 'highestBid', 'percentChange', 'baseVolume']
-  const table = new Table({ head })
+  const head = ['currencyPair', 'last', 'lowestAsk', 'highestBid', 'percentChange', 'baseVolume'];
+  const table = new Table({ head });
   const toBeRejected = isNil(currencies)
     ? F
     : pipe(
@@ -65,11 +65,11 @@ export function formatPairs(tickers: object, currencies: string[]) {
       currencyPair,
     })),
     sortBy(prop('currencyPair')),
-  )(tickers)
+  )(tickers);
 
   for (const pair of pairs) {
-    table.push(head.map(k => pair[k]))
+    table.push(head.map(k => pair[k]));
   }
 
-  return table.toString()
+  return table.toString();
 }

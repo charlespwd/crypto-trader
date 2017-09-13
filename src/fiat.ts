@@ -1,7 +1,7 @@
 import * as request from 'request-promise-native';
 
 const API_URL = 'http://api.fixer.io/latest';
-const rateUrl = base => `${API_URL}?base=${base}`
+const rateUrl = base => `${API_URL}?base=${base}`;
 
 export async function getRates(from) {
   const fromCurrency = from.toUpperCase();

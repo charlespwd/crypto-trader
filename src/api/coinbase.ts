@@ -1,5 +1,5 @@
 import '../types/api';
-import * as request from 'request-promise-native'
+import * as request from 'request-promise-native';
 import { Client } from 'coinbase';
 import { promisify } from 'util';
 import * as R from 'ramda';
@@ -14,16 +14,16 @@ const client = new Client({
 const getAccount = promisify(client.getAccount.bind(client));
 const getAccounts = promisify(client.getAccounts.bind(client));
 const accountsByCurrency = R.pipe(
-  R.filter(R.eqProps('type', { 'type': 'wallet' })),
+  R.filter(R.eqProps('type', { type: 'wallet' })),
   R.indexBy(R.prop('currency')),
 );
 const accounts = (async () => {
   return accountsByCurrency(await getAccounts({}));
-})()
+})();
 
 interface CoinbaseBalance {
-  amount: string,
-  currency: string,
+  amount: string;
+  currency: string;
 }
 
 const toBalances = R.pipe(
@@ -43,8 +43,8 @@ async function balances(): Promise<Balances> {
 const toTotal = R.pipe(
   R.filter(R.eqProps('type', { type: 'buy' })),
   R.map(R.pipe(R.prop('native_amount'), R.prop('amount'), parseFloat)),
-  R.sum
-)
+  R.sum,
+);
 
 async function totalSpent(): Promise<number> {
   const accountData = await getAccounts({});
@@ -52,9 +52,9 @@ async function totalSpent(): Promise<number> {
   let txs = [];
   for (const accountD of accountData) {
     const account = await getAccount(accountD.id);
-    const getTransactions = promisify(account.getTransactions.bind(account))
+    const getTransactions = promisify(account.getTransactions.bind(account));
     const transactions = await getTransactions(null);
-    txs = txs.concat(transactions)
+    txs = txs.concat(transactions);
   }
 
   return toTotal(txs);
@@ -75,7 +75,7 @@ async function tickers(): Promise<Tickers> {
 }
 
 interface CoinbaseApi extends Api {
-  totalSpent(): Promise<number>,
+  totalSpent(): Promise<number>;
 }
 
 const api: CoinbaseApi = {
@@ -84,6 +84,6 @@ const api: CoinbaseApi = {
   tickers,
   sell,
   buy,
-}
+};
 
 export default api;
