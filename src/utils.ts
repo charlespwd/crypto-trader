@@ -15,7 +15,8 @@ export const nonZeroBalances = filter(x => x > 0);
 
 const toBTC = (value: number, currency: string, tickers: Tickers) => {
   if (currency === 'BTC') return value;
-  return value * parseFloat(path([`BTC_${currency}`, 'last'], tickers) as string);
+  if (currency === 'USDT') return value / tickers.USDT_BTC.last;
+  return value * path<number>([`BTC_${currency}`, 'last'], tickers);
 };
 
 export const btcToUSD = (value: number, tickers: Tickers) => {
@@ -33,10 +34,10 @@ export const toUSD = (balances: Balances, tickers: Tickers): Balances => {
   );
 };
 
-export const toCAD = (balances: Balances, tickers, btcToCad) => {
+export const toCAD = (balances: Balances, tickers, btcToCadRate) => {
   const convert = (value, currency) => {
     const btc = toBTC(value, currency, tickers);
-    return btcToCad * btc;
+    return btcToCadRate * btc;
   };
   return mapObjIndexed(convert, nonZeroBalances(balances));
 };

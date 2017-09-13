@@ -1,0 +1,11 @@
+{
+  "src/*.ts": {
+    "alternate": "src/{}.spec.ts",
+    "type": "source"
+  },
+  "src/*.spec.ts": {
+    "alternate": "src/{}.ts",
+    "dispatch": "yarn --no-color test {file}",
+    "type": "test"
+  }
+}

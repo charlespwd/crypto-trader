@@ -1,0 +1,4 @@
+--watch-extensions ts
+--compilers ts:ts-node/register
+--require test/setup.ts
+--reporter mocha-multi
