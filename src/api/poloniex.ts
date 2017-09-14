@@ -164,11 +164,10 @@ async function tickers(): Promise<Tickers> {
   }), tickers);
 }
 
-interface PoloniexApi extends Api {}
-
 const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid;
 const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk;
-const api: PoloniexApi = {
+const api: Api = {
+  name: 'poloniex',
   balances,
   tickers: throttle(tickers, 1000, { leading: true, trailing: false }),
   sell: PROD ? makeTradeCommand('sell') : (x => logged('sell', x)),

@@ -72,6 +72,7 @@ interface CoinbaseApi extends Api {
 }
 
 const api: CoinbaseApi = {
+  name: 'coinbase',
   balances,
   totalSpent,
   tickers,

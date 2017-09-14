@@ -76,7 +76,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
       n: args.options.into ? parseInt(args.options.into, 10) : 30,
     };
     const ok = await ask(
-      `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.n} top coins by volume? [y/n]`,
+      `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.n} top coins by volume on ${params.api.name}? [y/n]`,
       null,
     );
     if (ok) {
@@ -93,6 +93,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
   });
 
 cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async function doTrade(args: any, callback: Function) {
     const api = ex(args.options.exchange);
     const params = {
@@ -104,7 +105,7 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     };
     const tickers = await api.tickers();
     const ok = await ask(
-      `Are you sure you want to trade ${params.amount} ${params.fromCoin} into ${params.toCoin}? \n` +
+      `Are you sure you want to trade ${params.amount} ${params.fromCoin} into ${params.toCoin} on ${params.exchange.name}? \n` +
       `Current sellRate is ${api.sellRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
       `Current buyRate is ${api.buyRate(params.pair, tickers)} ${params.pair.replace('_', '/')}\n` +
       `[y/n]`,

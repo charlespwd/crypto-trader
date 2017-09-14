@@ -1,7 +1,7 @@
 import * as request from 'request-promise-native';
 import * as qs from 'query-string';
 import * as crypto from 'crypto';
-import { timeout } from '../utils';
+import { timeout, log } from '../utils';
 import {
   map,
   merge,
@@ -35,7 +35,7 @@ function handleResponse(data) {
   if (data.success) {
     return data.result;
   } else {
-    throw new Error(data);
+    throw new Error(data.message);
   }
 }
 
@@ -136,23 +136,96 @@ async function balances(): Promise<Balances> {
   return bittrexBalancesToBalances(result);
 }
 
-function buy(options): Promise<number> {
-  throw new Error('not implemented');
+interface BittrexTradeResult {
+  uuid: string;
 }
 
-function sell(options): Promise<number> {
-  throw new Error('not implemented');
+interface BittrexOrder {
+  AccountId: string;
+  OrderUuid: string;
+  Exchange: string;
+  Type: 'LIMIT_BUY' | 'LIMIT_SELL';
+  Quantity: number;
+  QuantityRemaining: number;
+  Limit: number;
+  Reserved: number;
+  ReserveRemaining: number;
+  CommissionReserved: number;
+  CommissionReserveRemaining: number;
+  CommissionPaid: number;
+  Price: number;
+  PricePerUnit: number;
+  Opened: string;
+  Closed: string;
+  IsOpen: boolean;
+  Sentinel: string;
+  CancelInitiated: boolean;
+  ImmediateOrCancel: boolean;
+  IsConditional: boolean;
+  Condition: 'NONE';
+  ConditionTarget: boolean;
 }
 
-function buyRate(currencyPair, tickers): number {
-  throw new Error('not implemented');
+async function buy(options: TradeOptions): Promise<number> {
+  const result: BittrexTradeResult = await makeRequest({
+    url: requestUrl('market/buylimit', {
+      quantity: options.amount,
+      market: options.currencyPair.replace('_', '-'),
+      rate: options.rate,
+    }),
+  });
+
+  const orderId = result.uuid;
+
+  const orderStatus: BittrexOrder = await makeRequest({
+    url: requestUrl('account/getorder', {
+      uuid: orderId,
+    }),
+  });
+
+  if (orderStatus.IsOpen) {
+    log(`Buy order for ${JSON.stringify(options)} is still open!`);
+  }
+
+  return orderStatus.Quantity;
 }
 
-function sellRate(currencyPair, tickers): number {
-  throw new Error('not implemented');
+async function sell(options: TradeOptions): Promise<number> {
+  const result: BittrexTradeResult = await makeRequest({
+    url: requestUrl('market/selllimit', {
+      quantity: options.amount,
+      market: options.currencyPair.replace('_', '-'),
+      rate: options.rate,
+    }),
+  });
+
+  const orderId = result.uuid;
+
+  const orderStatus: BittrexOrder = await makeRequest({
+    url: requestUrl('account/getorder', {
+      uuid: orderId,
+    }),
+  });
+
+  if (orderStatus.IsOpen) {
+    log(`Sell order for ${JSON.stringify(options)} is still open!`);
+  }
+
+  return orderStatus.Price;
+}
+
+function buyRate(currencyPair: string, tickers: Tickers): number {
+  // buying 0.25% higher than lowest ask just to be sure
+  return tickers[currencyPair].lowestAsk * (1 + 0.0025);
+}
+
+function sellRate(currencyPair: string, tickers: Tickers): number {
+  // selling 0.25% lower than lowest bid just to be sure
+  return tickers[currencyPair].highestBid * (1 - 0.0025);
 }
 
 const bittrex: Api = {
+  name: 'bittrex',
   tickers,
   balances,
   buy,

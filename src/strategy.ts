@@ -34,6 +34,11 @@ export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = '
   const btcValueOfCoin = btcAmount / (N - 1);
   log(`SPLITTING ${btcAmount} BTC into ${N} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
 
+  if (btcValueOfCoin < 0.00050000) {
+    // 0.0005 = from / (N - 1) => N = from / 0.0005 + 1
+    throw new Error(`50K SAT minimum per trade try splitting ${fromAmount} BTC into ${Math.floor(btcAmount / 0.0005) + 1} coins`);
+  }
+
   const unable = [];
   const amounts = coinsToBuy.map(
     coin => [coin, trade(api, btcValueOfCoin, 'BTC', coin, `BTC_${coin}`)],
