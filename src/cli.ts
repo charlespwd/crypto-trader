@@ -6,13 +6,21 @@ import './types/api';
 import { poloniex, coinbase, bittrex } from './api';
 import trade from './trade';
 import { formatBalances, formatPairs } from './format';
-import { nonZeroBalances, toUSD } from './utils';
+import { setLogger, log, nonZeroBalances, toUSD } from './utils';
 import { getRate } from './fiat';
 
 const cli = require('vorpal')();
 const ask = (question: string, def: any) => new Promise((r) => {
   yesno.ask(question, def, r);
 });
+
+const supportedExchanges = [
+  'bittrex',
+  'poloniex',
+  'coinbase',
+];
+
+const exchangeOptDesc = 'The name of the exchange to query. (default = poloniex)';
 
 function ex(exchange: string = 'poloniex'): Api {
   switch (exchange) {
@@ -32,7 +40,7 @@ function ex(exchange: string = 'poloniex'): Api {
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .alias('b')
-  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const [tickers, balances] = await Promise.all([
@@ -51,7 +59,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
       : nzBalances;
     const usdBalances = toUSD(balances, tickers) as any;
 
-    console.log(formatBalances(cryptoBalances, toUSD(cryptoBalances, tickers)));
+    log(formatBalances(cryptoBalances, toUSD(cryptoBalances, tickers)));
 
     callback();
   });
@@ -59,11 +67,11 @@ cli.command('balances [coins...]', 'Display your current balances.')
 cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
   .alias('split')
   .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
-  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
-      exchange: args.options.exchange,
+      api: ex(args.options.exchange),
       fromCoin: args.fromCoin.toUpperCase(),
       n: args.options.into ? parseInt(args.options.into, 10) : 30,
     };
@@ -73,13 +81,13 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
     );
     if (ok) {
       await strategy.execute(
-        ex(params.exchange),
+        params.api,
         params.amount,
         params.n,
         params.fromCoin,
       );
     } else {
-      console.log('Ok! Not doing it.');
+      log('Ok! Not doing it.');
     }
     callback();
   });
@@ -200,12 +208,12 @@ cli.command('summary', 'Displays your portfolio summary.')
       pp(((estimatedUSDTotal / currentRate / totalSpent) - 1) * 100) + '%',
     ]);
 
-    console.log(table.toString());
+    log(table.toString());
     callback();
   });
 
 cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
-  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async function pairs(args: any, callback: Function) {
     const api = ex(args.options.exchange);
     const tickers = await api.tickers();
@@ -213,7 +221,7 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
   });
 
 cli.command('quote [currency]', 'Get a quote for a currency in USD')
-  .option('-x, --exchange [exchange]', 'The name of the exchange to query. (default = poloniex)')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async function quote(args: any, callback: Function) {
     const api = ex(args.options.exchange);
     const currency = args.currency.toUpperCase() as string;
@@ -234,6 +242,7 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
   });
 
 export function run() {
+  setLogger(cli.log.bind(cli));
   cli.delimiter('crypto-trader $ ')
     .history('crypto-trader-ching-ching')
     .show();

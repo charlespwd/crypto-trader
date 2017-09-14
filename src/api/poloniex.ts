@@ -6,7 +6,7 @@ import { throttle } from 'lodash';
 import * as qs from 'query-string';
 import { PROD } from '../constants';
 import Queue from '../queue';
-import { timeout } from '../utils';
+import { timeout, log } from '../utils';
 
 const API_LIMIT = 6; // calls per second
 const queue = new Queue(API_LIMIT);
@@ -106,7 +106,7 @@ const makeTradeCommand = (command: string) => async ({
 };
 
 async function logged(s: any, x: any): Promise<undefined> {
-  console.log(s, x);
+  log(s, x);
   return undefined;
 }
 

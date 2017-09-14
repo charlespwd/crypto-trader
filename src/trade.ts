@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import { sleep } from './utils';
+import { sleep, log } from './utils';
 import { PROD } from './constants';
 import { enqueue } from './queue';
 import './types/api';
@@ -54,7 +54,7 @@ export default async function trade(api: Api, fromAmount: number, fromCoin: stri
     const rate = getRate(api, isBuying, currencyPair, tickers);
     const amount = getAmount(isBuying, fromAmount, rate);
     const total = getTotal(isBuying, fromAmount, rate);
-    console.log(`TRADING: ${fromAmount} ${fromCoin} => ${isBuying ? amount : total} ${toCoin}`);
+    log(`TRADING: ${fromAmount} ${fromCoin} => ${isBuying ? amount : total} ${toCoin}`);
 
     if (amount < 0.001 || n > 5) return 0;
 
@@ -62,7 +62,7 @@ export default async function trade(api: Api, fromAmount: number, fromCoin: stri
       ? await tradeFn({ amount: amount.toString(), currencyPair, rate: rate.toString() })
       : await enqueue(R.partial(successfulResponse, [isBuying, amount, total, rate])) as number;
   } catch (e) {
-    console.log(`Failed to ${isBuying ? 'buy' : 'sell'} ${toCoin}, retry count: ${n}, retrying in 2s`);
+    log(`Failed to ${isBuying ? 'buy' : 'sell'} ${toCoin}, retry count: ${n}, retrying in 2s`);
     console.error(e);
     await sleep(2000);
     return trade(api, fromAmount, fromCoin, toCoin, currencyPair, n + 1);

@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 import trade from './trade';
-import { sleep } from './utils';
+import { sleep, log } from './utils';
 
 const BLACKLIST = [
   'BTC',
@@ -9,7 +9,6 @@ const BLACKLIST = [
   'LTC',
   'ETC',
 ];
-const log = console.log.bind(console);
 
 export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = 'ETH') {
   const fromAmountToBuyAsBTC = fromAmount * (n - 1) / n;

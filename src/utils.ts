@@ -9,6 +9,9 @@ const throwTimeout = (reject) => {
   reject(new Error('Timeout error, too slow'));
 };
 
+let logger = console.log.bind(console);
+export const setLogger = (fn) => { logger = fn; };
+export const log = (...args) => logger(...args);
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export const timeout = (ms: number) => new Promise((r, reject) => setTimeout(throwTimeout, ms, reject));
 export const nonZeroBalances = filter(x => x > 0);
