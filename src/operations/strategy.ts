@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 import trade from './trade';
-import { sleep, log } from './utils';
+import { sleep, log } from '../utils';
 
 const BLACKLIST = [
   'BTC',

@@ -1,12 +1,10 @@
-import '../types/api';
 import * as request from 'request-promise-native';
 import * as crypto from 'crypto';
 import * as R from 'ramda';
 import { throttle } from 'lodash';
 import * as qs from 'query-string';
 import { PROD } from '../constants';
-import Queue from '../queue';
-import { timeout, log } from '../utils';
+import { timeout, log, Queue } from '../utils';
 
 const API_LIMIT = 6; // calls per second
 const queue = new Queue(API_LIMIT);
@@ -149,7 +147,7 @@ interface PoloniexTickers {
 }
 
 async function tickers(): Promise<Tickers> {
-  const tickers = await get('returnTicker') as PoloniexTickers;
+  const tickers: PoloniexTickers = await get('returnTicker');
   return R.mapObjIndexed((ticker: PoloniexTicker, currencyPair: string) => ({
     last: parseFloat(ticker.last),
     lowestAsk: parseFloat(ticker.lowestAsk),
@@ -164,6 +162,11 @@ async function tickers(): Promise<Tickers> {
   }), tickers);
 }
 
+async function addresses(): Promise<DepositAddresses> {
+  const result = await post('returnDepositAddresses');
+  return result;
+}
+
 const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid;
 const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk;
 const api: Api = {
@@ -174,6 +177,7 @@ const api: Api = {
   buy: PROD ? makeTradeCommand('buy') : (x => logged('buy', x)),
   sellRate,
   buyRate,
+  addresses,
 };
 
 export default api;

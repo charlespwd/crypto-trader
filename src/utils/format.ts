@@ -47,6 +47,20 @@ export function formatBalances(balances: Object, usdBalances: Object) {
   return table.toString();
 }
 
+export function formatAddresses(addresses: DepositAddresses) {
+  const table = new Table({
+    head: ['Currency', 'Address'],
+  });
+
+  const pairs = toPairs(addresses);
+
+  for (const pair of pairs as any) {
+    table.push(pair);
+  }
+
+  return table.toString();
+}
+
 export function formatPairs(tickers: object, currencies: string[]) {
   const head = ['currencyPair', 'last', 'lowestAsk', 'highestBid', 'percentChange', 'baseVolume'];
   const table = new Table({ head });

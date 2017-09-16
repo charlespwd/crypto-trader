@@ -1,4 +1,3 @@
-import '../types/api';
 import * as request from 'request-promise-native';
 import { Client } from 'coinbase';
 import { promisify } from 'util';
@@ -78,6 +77,9 @@ const api: CoinbaseApi = {
   tickers,
   sell,
   buy,
+  addresses: () => {
+    throw new Error('not implemented');
+  },
   buyRate: () => {
     throw new Error('not implemented');
   },

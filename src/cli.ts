@@ -1,13 +1,20 @@
+import './types/api';
 import * as R from 'ramda';
-import * as strategy from './strategy';
+import * as strategy from './operations/strategy';
+import trade from './operations/trade';
+import { poloniex, coinbase, bittrex } from './api';
+import { getRate } from './fiat';
+import {
+  formatAddresses,
+  formatBalances,
+  formatPairs,
+  log,
+  nonZeroBalances,
+  setLogger,
+  toUSD,
+} from './utils';
 const yesno = require('yesno');
 const Table = require('cli-table');
-import './types/api';
-import { poloniex, coinbase, bittrex } from './api';
-import trade from './trade';
-import { formatBalances, formatPairs } from './format';
-import { setLogger, log, nonZeroBalances, toUSD } from './utils';
-import { getRate } from './fiat';
 
 const cli = require('vorpal')();
 const ask = (question: string, def: any) => new Promise((r) => {
@@ -26,6 +33,7 @@ function ex(exchange: string = 'poloniex'): Api {
   switch (exchange) {
     case 'pl':
     case 'pn':
+    case 'polo':
     case 'poloniex': return poloniex;
 
     case 'cb':
@@ -33,6 +41,7 @@ function ex(exchange: string = 'poloniex'): Api {
 
     case 'br':
     case 'bittrex': return bittrex;
+
     default: throw new Error('Unsupported exchange');
   }
 }
@@ -128,6 +137,8 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     } else {
       this.log('OK! Not doing it!');
     }
+
+    callback();
   });
 
 const pp = (x: number) => x.toFixed(2);
@@ -157,7 +168,7 @@ cli.command('summary', 'Displays your portfolio summary.')
     const buyRate = options.buyRate || rate;
     const currentRate = options.currentRate || rate;
     const coinbaseFee = 0.0399;
-    const poloniexFee = 0.0025 * 4;
+    const exchangeFee = 0.0025 * 4;
 
     table.push([
       'total spent',
@@ -172,18 +183,18 @@ cli.command('summary', 'Displays your portfolio summary.')
     ]);
 
     table.push([
-      'poloniex fees',
-      pp(totalSpent * poloniexFee),
-      pp(totalSpent * poloniexFee * buyRate),
+      'exchange fees',
+      pp(totalSpent * exchangeFee),
+      pp(totalSpent * exchangeFee * buyRate),
     ]);
 
     table.push([
       'total fees',
-      pp(totalSpent * (coinbaseFee + poloniexFee)),
-      pp(totalSpent * (coinbaseFee + poloniexFee) * buyRate),
+      pp(totalSpent * (coinbaseFee + exchangeFee)),
+      pp(totalSpent * (coinbaseFee + exchangeFee) * buyRate),
     ]);
 
-    const totalAfterFees = totalSpent * (1 - coinbaseFee - poloniexFee);
+    const totalAfterFees = totalSpent * (1 - coinbaseFee - exchangeFee);
 
     table.push([
       'total after fees',
@@ -219,6 +230,7 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
     const api = ex(args.options.exchange);
     const tickers = await api.tickers();
     this.log(formatPairs(tickers, args.currencies));
+    callback();
   });
 
 cli.command('quote [currency]', 'Get a quote for a currency in USD')
@@ -240,6 +252,22 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
       this.log(`1 ${currency} = ${usd.toFixed(5)} USD`);
       this.log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
     }
+    callback();
+  });
+
+cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addresses from an exchange')
+  .alias('address')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .action(async (args: any, callback: Function) => {
+    const api = ex(args.options.exchange);
+    const currency = (args.currency || '').toUpperCase() as string;
+    const addresses = await api.addresses();
+    if (currency) {
+      log(currency, ':', addresses[currency]);
+    } else {
+      log(formatAddresses(addresses));
+    }
+    callback();
   });
 
 export function run() {

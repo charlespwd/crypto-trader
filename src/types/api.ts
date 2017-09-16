@@ -25,12 +25,33 @@ declare type TradeOptions = {
   currencyPair: string;
 };
 
+declare type DepositAddress = string;
+
+declare interface DepositAddresses {
+  [currency: string]: DepositAddress;
+}
+
+declare interface Trade {
+  currencyPair: string;
+  type: 'buy' | 'sell';
+  amount: number;
+  fee: number;
+  total: number;
+  rate: number;
+}
+
+declare interface TradeHistory {
+  [currencyPair: string]: Trade[];
+}
+
 declare interface Api {
   name: string;
   tickers(): Promise<Tickers>;
+  addresses(): Promise<DepositAddresses>;
   balances(): Promise<Balances>;
   sell(options: TradeOptions): Promise<number>;
   buy(options: TradeOptions): Promise<number>;
   buyRate(currencyPair: string, tickers: Tickers): number;
   sellRate(currencyPair: string, tickers: Tickers): number;
+  // trades(): Promise<TradeHistory>;
 }

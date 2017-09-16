@@ -1,12 +1,12 @@
 import * as EventEmitter from 'events';
-import { sleep } from './utils';
+import { sleep } from './index';
 
 const success = (token: any) => token + 'success';
 const failure = (token: any) => token + 'failure';
 
 type TokenFunctionPair = [string, Function];
 
-export default class Queue {
+export class Queue {
   private limit = 6;
   private queue: TokenFunctionPair[] = [];
   private emitter = new EventEmitter();

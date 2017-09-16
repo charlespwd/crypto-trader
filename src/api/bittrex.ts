@@ -10,6 +10,8 @@ import {
   prop,
   zipObj,
   replace,
+  reject,
+  isNil,
 } from 'ramda';
 
 const API_KEY = process.env.BITTREX_API_KEY;
@@ -115,7 +117,7 @@ interface BittrexBalance {
   Balance: number;
   Available: number;
   Pending: number;
-  CryptoAddress: string;
+  CryptoAddress: string | null;
 }
 
 function bittrexBalancesToBalances(balances: BittrexBalance[]): Balances {
@@ -134,6 +136,24 @@ async function balances(): Promise<Balances> {
   });
 
   return bittrexBalancesToBalances(result);
+}
+
+function bittrexBalancesToAddresses(balances: BittrexBalance[]): DepositAddresses {
+  const currencies = map(x => x.Currency, balances);
+  const addresses = map(x => x.CryptoAddress, balances);
+
+  return reject(isNil, zipObj(
+    currencies,
+    addresses,
+  ));
+}
+
+async function addresses(): Promise<DepositAddresses> {
+  const result: BittrexBalance[] = await makeRequest({
+    url: requestUrl('account/getbalances'),
+  });
+
+  return bittrexBalancesToAddresses(result);
 }
 
 interface BittrexTradeResult {
@@ -226,6 +246,7 @@ function sellRate(currencyPair: string, tickers: Tickers): number {
 
 const bittrex: Api = {
   name: 'bittrex',
+  addresses,
   tickers,
   balances,
   buy,

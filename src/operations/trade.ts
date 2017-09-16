@@ -1,8 +1,6 @@
 import * as R from 'ramda';
-import { sleep, log } from './utils';
-import { PROD } from './constants';
-import { enqueue } from './queue';
-import './types/api';
+import { sleep, log, enqueue } from '../utils';
+import { PROD } from '../constants';
 
 // Some definitons, for a currencyPair BTC_ETH
 // amount = (price in ETH)
