@@ -53,5 +53,5 @@ declare interface Api {
   buy(options: TradeOptions): Promise<number>;
   buyRate(currencyPair: string, tickers: Tickers): number;
   sellRate(currencyPair: string, tickers: Tickers): number;
-  // trades(): Promise<TradeHistory>;
+  trades(): Promise<TradeHistory>;
 }

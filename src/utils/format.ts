@@ -1,8 +1,12 @@
+import '../types/api';
+import '../types/operations';
 import * as Table from 'cli-table';
 import * as R from 'ramda';
+import { btcToUSD } from './conversions';
 const {
   F,
   contains,
+  filter,
   flatten,
   intersection,
   isEmpty,
@@ -18,6 +22,7 @@ const {
   toUpper,
   values,
   valuesIn,
+  startsWith,
 } = R;
 
 interface Balances {
@@ -84,6 +89,51 @@ export function formatPairs(tickers: object, currencies: string[]) {
 
   for (const pair of pairs) {
     table.push(head.map(k => pair[k]));
+  }
+
+  return table.toString();
+}
+
+export function formatPerformances(
+  performances: Operations.PerformanceByExchange,
+  tickers: Tickers,
+) {
+  const table = new Table({
+    head: [
+      'Pair',
+      'Total spent',
+      'Estimated Value',
+      'Base Profit',
+      'USD Profit',
+      '%',
+    ],
+    colAligns: [
+      'left',
+      'right',
+      'right',
+      'right',
+      'right',
+      'right',
+    ],
+  });
+
+  const sortByUSDValue = sortBy(pair => btcToUSD(pair[1].profit, tickers));
+  const transform = pipe(
+    filter((x: Operations.Performance) => startsWith('BTC', x.currencyPair)),
+    (x: Operations.PerformanceByExchange) => toPairs(x),
+    sortByUSDValue,
+  );
+  const pairs = transform(performances);
+
+  for (const [pair, performance] of pairs) {
+    table.push([
+      pair,
+      performance.totalSpent.toFixed(8),
+      performance.estimatedValue.toFixed(8),
+      performance.profit.toFixed(8),
+      btcToUSD(performance.profit, tickers).toFixed(8),
+      performance.percentProfit.toFixed(2) + '%',
+    ]);
   }
 
   return table.toString();

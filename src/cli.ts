@@ -1,10 +1,11 @@
-import './types/api';
 import * as R from 'ramda';
 import * as strategy from './operations/strategy';
 import trade from './operations/trade';
+import { performanceByExchange } from './operations/performance';
 import { poloniex, coinbase, bittrex } from './api';
 import { getRate } from './fiat';
 import {
+  formatPerformances,
   formatAddresses,
   formatBalances,
   formatPairs,
@@ -73,8 +74,33 @@ cli.command('balances [coins...]', 'Display your current balances.')
     callback();
   });
 
+cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .action(async (args: any, callback: Function) => {
+    const params = {
+      amount: parseFloat(args.amount),
+      api: ex(args.options.exchange),
+      fromCoin: args.fromCoin.toUpperCase(),
+      strategy: strategy.namedListStrategy(args.coins as string[]),
+    };
+    const ok = await ask(
+      `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.strategy.value.join(', ')} on ${params.api.name}? [y/n]`,
+      null,
+    );
+    if (ok) {
+      await strategy.execute(
+        params.api,
+        params.amount,
+        params.strategy,
+        params.fromCoin,
+      );
+    } else {
+      log('Ok! Not doing it.');
+    }
+    callback();
+  });
+
 cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
-  .alias('split')
   .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async (args: any, callback: Function) => {
@@ -82,17 +108,19 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
       amount: parseFloat(args.amount),
       api: ex(args.options.exchange),
       fromCoin: args.fromCoin.toUpperCase(),
-      n: args.options.into ? parseInt(args.options.into, 10) : 30,
+      strategy: strategy.topByVolumeStrategy(
+        args.options.into ? parseInt(args.options.into, 10) : 30,
+      ),
     };
     const ok = await ask(
-      `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.n} top coins by volume on ${params.api.name}? [y/n]`,
+      `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.strategy.n} top coins by volume on ${params.api.name}? [y/n]`,
       null,
     );
     if (ok) {
       await strategy.execute(
         params.api,
         params.amount,
-        params.n,
+        params.strategy,
         params.fromCoin,
       );
     } else {
@@ -152,12 +180,13 @@ cli.command('summary', 'Displays your portfolio summary.')
       head: ['Description', 'CAD', 'USD'],
       colAligns: ['left', 'right', 'right'],
     });
-    const [pTickers, pBalances, bTickers, bBalances, totalSpent] = await Promise.all([
+    const [pTickers, pBalances, bTickers, bBalances, totalSpent, currentRate] = await Promise.all([
       ex('poloniex').tickers(),
       ex('poloniex').balances(),
       ex('bittrex').tickers(),
       ex('bittrex').balances(),
       coinbase.totalSpent(),
+      getRate('CAD', 'USD'),
     ]);
     const poloUsdBalances = toUSD(pBalances, pTickers);
     const bittUsdBalances = toUSD(bBalances, bTickers);
@@ -166,7 +195,6 @@ cli.command('summary', 'Displays your portfolio summary.')
     const { options } = args;
     const rate = options.rate || 0.79;
     const buyRate = options.buyRate || rate;
-    const currentRate = options.currentRate || rate;
     const coinbaseFee = 0.0399;
     const exchangeFee = 0.0025 * 4;
 
@@ -269,6 +297,19 @@ cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addres
     }
     callback();
   });
+
+cli.command('performance', 'Get a list of performances by exchange')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .action(async (args: any, callback: Function) => {
+    const api = ex(args.options.exchange);
+    const [tickers, trades] = await Promise.all([
+      api.tickers(),
+      api.trades(),
+    ]);
+    log(formatPerformances(performanceByExchange(trades, tickers), tickers));
+    callback();
+  });
+
 
 export function run() {
   setLogger(cli.log.bind(cli));

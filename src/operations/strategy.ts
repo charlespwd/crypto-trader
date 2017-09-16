@@ -10,8 +10,61 @@ const BLACKLIST = [
   'ETC',
 ];
 
-export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = 'ETH') {
-  const fromAmountToBuyAsBTC = fromAmount * (n - 1) / n;
+interface TopByVolume {
+  type: 'top-by-volume';
+  n: number;
+}
+
+interface NamedList {
+  type: 'named-list';
+  value: string[];
+}
+
+type Strategy = TopByVolume | NamedList;
+
+export function topByVolumeStrategy(n = 30): TopByVolume {
+  return {
+    type: 'top-by-volume',
+    n,
+  };
+}
+
+export function namedListStrategy(list: string[]): NamedList {
+  return {
+    type: 'named-list',
+    value: R.map(R.toUpper, list),
+  };
+}
+
+const getN = (s: Strategy) => {
+  switch (s.type) {
+    case 'top-by-volume': return s.n;
+    case 'named-list': return s.value.length;
+    default: throw new Error('not supported!');
+  }
+};
+
+async function getCoinsToBuy(s: Strategy, api: Api, fromCoin: string): Promise<string[]> {
+  switch (s.type) {
+    case 'top-by-volume': {
+      return R.take(s.n, (await getTopByVolume(api))
+        .filter(x => !R.contains(x, BLACKLIST))
+        .filter(x => x !== fromCoin));
+    }
+    case 'named-list': {
+      return s.value
+        .filter(x => !R.contains(x, BLACKLIST))
+        .filter(x => x !== fromCoin);
+    }
+  }
+}
+
+export async function execute(api: Api, fromAmount: number, strategy: Strategy, fromCoin = 'ETH') {
+  const n = getN(strategy);
+
+  // We keep some of fromCoin and we keep some bitcoin, therefore we have
+  // a total of n+2 coins.
+  const fromAmountToBuyAsBTC = fromAmount * (n + 1) / (n + 2);
   const btcAmount = fromCoin !== 'BTC'
     ? await trade(api, fromAmountToBuyAsBTC, fromCoin, 'BTC', `BTC_${fromCoin}`)
     : fromAmount;
@@ -25,18 +78,15 @@ export async function execute(api: Api, fromAmount: number, n = 30, fromCoin = '
     log(`SUCCESS: SOLD ${fromAmountToBuyAsBTC} ${fromCoin} for ${btcAmount} BTC`);
   }
 
-  const topCoins = (await getTopByVolume(api))
-    .filter(x => !R.contains(x, BLACKLIST))
-    .filter(x => x !== fromCoin);
-  const coinsToBuy = R.take(n, topCoins) as string[];
+  const coinsToBuy = await getCoinsToBuy(strategy, api, fromCoin);
   const N = coinsToBuy.length; // because it might be smaller than N
 
-  const btcValueOfCoin = btcAmount / (N - 1);
-  log(`SPLITTING ${btcAmount} BTC into ${N} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
+  const btcValueOfCoin = btcAmount / (N + 1);
+  log(`SPLITTING ${btcAmount} BTC into ${N + 1} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
 
   if (btcValueOfCoin < 0.00050000) {
-    // 0.0005 = from / (N - 1) => N = from / 0.0005 + 1
-    throw new Error(`50K SAT minimum per trade try splitting ${fromAmount} BTC into ${Math.floor(btcAmount / 0.0005) + 1} coins`);
+    // 0.0005 = from / (N + 1) => N = from / 0.0005 - 1
+    throw new Error(`50K SAT minimum per trade try splitting ${fromAmount} BTC into ${Math.floor(btcAmount / 0.0005) - 1} coins`);
   }
 
   const unable = [];

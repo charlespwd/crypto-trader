@@ -4,6 +4,7 @@ import * as R from 'ramda';
 import { throttle } from 'lodash';
 import * as qs from 'query-string';
 import { PROD } from '../constants';
+import * as moment from 'moment';
 import { timeout, log, Queue } from '../utils';
 
 const API_LIMIT = 6; // calls per second
@@ -167,6 +168,53 @@ async function addresses(): Promise<DepositAddresses> {
   return result;
 }
 
+interface PoloniexTrade {
+  globalTradeID: number;
+  tradeID: string;
+  date: string;
+  rate: string;
+  amount: string;
+  total: string;
+  fee: string;
+  orderNumber: string;
+  type: 'sell' | 'buy';
+  category: 'exchange' | 'settlement' | 'marginTrade';
+}
+
+interface PoloniexTradeHistory {
+  [currencyPair: string]: PoloniexTrade[];
+}
+
+const fromPoloniexTradeToTrade = (pair: string) => (
+  (trade: PoloniexTrade): Trade => ({
+    type: trade.type,
+    currencyPair: pair,
+    amount: parseFloat(trade.amount),
+    fee: parseFloat(trade.fee),
+    total: parseFloat(trade.total),
+    rate: parseFloat(trade.rate),
+  })
+);
+
+function fromPoloniexTradeHistoryToTradeHistory(hist: PoloniexTradeHistory): TradeHistory {
+  return R.mapObjIndexed(
+    (trades, currencyPair) => (
+      R.map(fromPoloniexTradeToTrade(currencyPair), trades)
+    ),
+    hist,
+  );
+}
+
+async function trades(): Promise<TradeHistory> {
+  const result: PoloniexTradeHistory = await post('returnTradeHistory', {
+    start: moment().startOf('year').format('X'),
+    end: moment().format('X'),
+    currencyPair: 'all',
+    limit: 10000,
+  });
+  return fromPoloniexTradeHistoryToTradeHistory(result);
+}
+
 const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid;
 const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk;
 const api: Api = {
@@ -178,6 +226,7 @@ const api: Api = {
   sellRate,
   buyRate,
   addresses,
+  trades,
 };
 
 export default api;

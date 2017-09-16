@@ -77,6 +77,9 @@ const api: CoinbaseApi = {
   tickers,
   sell,
   buy,
+  trades: () => {
+    throw new Error('not implemented');
+  },
   addresses: () => {
     throw new Error('not implemented');
   },

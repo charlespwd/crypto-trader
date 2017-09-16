@@ -253,5 +253,6 @@ const bittrex: Api = {
   sell,
   buyRate,
   sellRate,
+  trades: () => { throw new Error('Not implemented error'); },
 };
 export default bittrex;
