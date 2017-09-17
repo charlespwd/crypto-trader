@@ -12,7 +12,7 @@
     "node": ">=8.0.0"
   },
   "scripts": {
-    "build": "tsc src/index.ts --outDir lib",
+    "build": "rm -rf lib && tsc src/index.ts --outDir lib",
     "devel": "yarn watch",
     "precommit": "tslint -t verbose src/**",
     "start": "ts-node src/index.ts",
