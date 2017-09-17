@@ -12,6 +12,7 @@ import {
   replace,
   reject,
   isNil,
+  groupBy,
 } from 'ramda';
 
 const API_KEY = process.env.BITTREX_API_KEY;
@@ -244,6 +245,61 @@ function sellRate(currencyPair: string, tickers: Tickers): number {
   return tickers[currencyPair].highestBid * (1 - 0.0025);
 }
 
+type BittrexTradeType = 'LIMIT_BUY' | 'LIMIT_SELL';
+
+interface BittrexTrade {
+  OrderUuid: string;
+  Exchange: string;
+  TimeStamp: string;
+  OrderType: BittrexTradeType;
+  Limit: number;
+  Quantity: number;
+  QuantityRemaining: number;
+  Commission: number;
+  Price: number;
+  PricePerUnit: number;
+  IsConditional: boolean;
+  Condition: string | null;
+  ConditionTarget: number;
+  ImmediateOrCancel: boolean;
+}
+
+function convertTradeType(x: BittrexTradeType): TradeType {
+  switch (x) {
+    case 'LIMIT_BUY': return 'buy';
+    case 'LIMIT_SELL': return 'sell';
+    default: throw new Error(`${x} not supported`);
+  }
+}
+
+const types = {
+  LIMIT_BUY: 'buy',
+  LIMIT_SELL: 'sell',
+};
+
+function toTradeHistory(bittrexTrades: BittrexTrade[]): TradeHistory {
+  const trades = map(x => ({
+    currencyPair: x.Exchange.replace(/-/, '_'),
+    type: convertTradeType(x.OrderType),
+    amount: x.Quantity,
+    total: x.Price,
+    rate: x.PricePerUnit,
+  }), bittrexTrades);
+
+  return groupBy(
+    x => x.currencyPair,
+    trades,
+  );
+}
+
+async function trades(): Promise<TradeHistory> {
+  const result: BittrexTrade[] = await makeRequest({
+    url: requestUrl('account/getorderhistory'),
+  });
+
+  return toTradeHistory(result);
+}
+
 const bittrex: Api = {
   name: 'bittrex',
   addresses,
@@ -253,6 +309,6 @@ const bittrex: Api = {
   sell,
   buyRate,
   sellRate,
-  trades: () => { throw new Error('Not implemented error'); },
+  trades,
 };
 export default bittrex;

@@ -31,11 +31,12 @@ declare interface DepositAddresses {
   [currency: string]: DepositAddress;
 }
 
+declare type TradeType = 'buy' | 'sell';
+
 declare interface Trade {
   currencyPair: string;
-  type: 'buy' | 'sell';
+  type: TradeType;
   amount: number;
-  fee: number;
   total: number;
   rate: number;
 }

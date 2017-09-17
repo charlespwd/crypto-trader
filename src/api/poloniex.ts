@@ -190,7 +190,6 @@ const fromPoloniexTradeToTrade = (pair: string) => (
     type: trade.type,
     currencyPair: pair,
     amount: parseFloat(trade.amount),
-    fee: parseFloat(trade.fee),
     total: parseFloat(trade.total),
     rate: parseFloat(trade.rate),
   })
