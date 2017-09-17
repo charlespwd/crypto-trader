@@ -34,7 +34,6 @@
     "nodemon": "^1.11.0",
     "progress": "^2.0.0",
     "query-string": "^4.3.4",
-    "rambda": "^0.7.0",
     "ramda": "^0.24.1",
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4",
