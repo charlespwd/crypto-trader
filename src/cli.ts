@@ -299,14 +299,21 @@ cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addres
   });
 
 cli.command('performance', 'Get a list of performances by exchange')
+  .alias('performances')
+  .alias('perf')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .option('-s, --sort-by [method]', 'The column to sort by', ['profit', 'usd', 'percent'])
   .action(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const [tickers, trades] = await Promise.all([
       api.tickers(),
       api.trades(),
     ]);
-    log(formatPerformances(performanceByExchange(trades, tickers), tickers));
+    log(formatPerformances(
+      performanceByExchange(trades, tickers),
+      tickers,
+      args.options['sort-by'],
+    ));
     callback();
   });
 

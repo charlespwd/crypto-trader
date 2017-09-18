@@ -94,9 +94,20 @@ export function formatPairs(tickers: object, currencies: string[]) {
   return table.toString();
 }
 
+type SortByMethod = 'profit' | 'usd' | 'percent';
+function sortByMethod(method: SortByMethod, tickers: Tickers) {
+  switch (method) {
+    case 'profit': return pair => pair[1].profit;
+    case 'usd': return pair => btcToUSD(pair[1].profit, tickers);
+    case 'percent': return pair => pair[1].percentProfit;
+    default: throw new Error('Sorting method not supported');
+  }
+}
+
 export function formatPerformances(
   performances: Operations.PerformanceByExchange,
   tickers: Tickers,
+  method: SortByMethod = 'usd',
 ) {
   const table = new Table({
     head: [
@@ -117,12 +128,12 @@ export function formatPerformances(
     ],
   });
 
-  const sortByUSDValue = sortBy(pair => btcToUSD(pair[1].profit, tickers));
   const transform = pipe(
     filter((x: Operations.Performance) => startsWith('BTC', x.currencyPair)),
     (x: Operations.PerformanceByExchange) => toPairs(x),
-    sortByUSDValue,
+    sortBy(sortByMethod(method, tickers)),
   );
+
   const pairs = transform(performances);
 
   for (const [pair, performance] of pairs) {
