@@ -1,12 +1,18 @@
 # Crypto Trader
 
-Crypto Trader is a command line tool for diversifying your cryptocurrency portfolio on exchanges. 
+Crypto Trader is a command line tool for diversifying your cryptocurrency portfolio on exchanges.
 
 This is very much alpha material. But it works and I've been able to diversify my own portfolio. You should only use it if you trust me.
 
 ## Demo
 
 * TODO (include gif)
+
+## Installation
+
+```bash
+npm install -g crypto-trader
+```
 
 ## Usage
 
