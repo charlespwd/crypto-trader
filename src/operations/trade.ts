@@ -44,6 +44,7 @@ async function successfulResponse(isBuying, amount, total, rate) {
 // | BTC      | ETH    | buy        | ETH (amount)
 // | ETH      | BTC    | sell       | BTC (total)
 export default async function trade(api: Api, fromAmount: number, fromCoin: string, toCoin: string, currencyPair: string, n = 0): Promise<number> {
+  if (fromCoin === toCoin) return fromAmount;
   const isBuying = isBuyOrder(fromCoin, toCoin, currencyPair);
   const tradeFn = isBuying ? api.buy : api.sell;
 

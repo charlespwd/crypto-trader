@@ -21,7 +21,6 @@
     "watch": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
   },
   "dependencies": {
-    "@types/moment": "^2.13.0",
     "@types/ramda": "^0.24.11",
     "autobahn": "^17.5.2",
     "cli-table": "^0.3.1",

@@ -3,7 +3,7 @@ import * as strategy from './operations/strategy';
 import trade from './operations/trade';
 import { performanceByExchange } from './operations/performance';
 import { poloniex, coinbase, bittrex } from './api';
-import { getRate } from './fiat';
+import { getRate, getUsdPerCad } from './fiat';
 import {
   formatPerformances,
   formatAddresses,
@@ -12,6 +12,7 @@ import {
   log,
   nonZeroBalances,
   setLogger,
+  toCAD,
   toUSD,
 } from './utils';
 const yesno = require('yesno');
@@ -53,9 +54,10 @@ cli.command('balances [coins...]', 'Display your current balances.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
-    const [tickers, balances] = await Promise.all([
+    const [tickers, balances, usdPerCad] = await Promise.all([
       api.tickers(),
       api.balances(),
+      getUsdPerCad(),
     ]);
     const nzBalances = nonZeroBalances(balances);
     const cryptoBalances = args.coins
@@ -67,9 +69,9 @@ cli.command('balances [coins...]', 'Display your current balances.')
         nzBalances,
       ) as any
       : nzBalances;
-    const usdBalances = toUSD(balances, tickers) as any;
+    const cadBalances = toCAD(balances, tickers, usdPerCad) as any;
 
-    log(formatBalances(cryptoBalances, toUSD(cryptoBalances, tickers)));
+    log(formatBalances(cryptoBalances, toCAD(cryptoBalances, tickers, usdPerCad)));
 
     callback();
   });
@@ -270,7 +272,7 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
       const rate = await getRate(currency, 'USD');
       this.log(`1 ${currency} = ${rate} USD`);
     } else {
-      const rate = await getRate('CAD', 'USD');
+      const rate = await getUsdPerCad();
       const tickers = await api.tickers();
       const balances = {
         [currency]: 1,
@@ -298,7 +300,7 @@ cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addres
     callback();
   });
 
-cli.command('performance', 'Get a list of performances by exchange')
+cli.command('performance [currencies...]', 'Get a list of performances by exchange')
   .alias('performances')
   .alias('perf')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
@@ -312,6 +314,7 @@ cli.command('performance', 'Get a list of performances by exchange')
     log(formatPerformances(
       performanceByExchange(trades, tickers),
       tickers,
+      (args.currencies || []).map(x => x.toUpperCase()),
       args.options['sort-by'],
     ));
     callback();

@@ -3,10 +3,8 @@ import trade from './trade';
 import { sleep, log } from '../utils';
 
 const BLACKLIST = [
-  'BTC',
   'DOGE',
   'POT',
-  'LTC',
   'ETC',
 ];
 
@@ -36,14 +34,6 @@ export function namedListStrategy(list: string[]): NamedList {
   };
 }
 
-const getN = (s: Strategy) => {
-  switch (s.type) {
-    case 'top-by-volume': return s.n;
-    case 'named-list': return s.value.length;
-    default: throw new Error('not supported!');
-  }
-};
-
 async function getCoinsToBuy(s: Strategy, api: Api, fromCoin: string): Promise<string[]> {
   switch (s.type) {
     case 'top-by-volume': {
@@ -60,14 +50,12 @@ async function getCoinsToBuy(s: Strategy, api: Api, fromCoin: string): Promise<s
 }
 
 export async function execute(api: Api, fromAmount: number, strategy: Strategy, fromCoin = 'ETH') {
-  const n = getN(strategy);
-
-  // We keep some of fromCoin and we keep some bitcoin, therefore we have
-  // a total of n+2 coins.
-  const fromAmountToBuyAsBTC = fromAmount * (n + 1) / (n + 2);
+  const coinsToBuy = await getCoinsToBuy(strategy, api, fromCoin);
+  const N = coinsToBuy.length;
+  const fromAmountToBuyAsBTC = fromAmount * N / (N + 1);
   const btcAmount = fromCoin !== 'BTC'
     ? await trade(api, fromAmountToBuyAsBTC, fromCoin, 'BTC', `BTC_${fromCoin}`)
-    : fromAmount;
+    : fromAmountToBuyAsBTC;
 
   if (btcAmount === 0) {
     log(`FAILURE: COULD NOT TURN ${fromCoin} INTO BTC`);
@@ -78,11 +66,8 @@ export async function execute(api: Api, fromAmount: number, strategy: Strategy, 
     log(`SUCCESS: SOLD ${fromAmountToBuyAsBTC} ${fromCoin} for ${btcAmount} BTC`);
   }
 
-  const coinsToBuy = await getCoinsToBuy(strategy, api, fromCoin);
-  const N = coinsToBuy.length; // because it might be smaller than N
-
-  const btcValueOfCoin = btcAmount / (N + 1);
-  log(`SPLITTING ${btcAmount} BTC into ${N + 1} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
+  const btcValueOfCoin = btcAmount / N;
+  log(`SPLITTING ${btcAmount} BTC into ${N} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
 
   if (btcValueOfCoin < 0.00050000) {
     // 0.0005 = from / (N + 1) => N = from / 0.0005 - 1

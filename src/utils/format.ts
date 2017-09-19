@@ -23,15 +23,16 @@ const {
   values,
   valuesIn,
   startsWith,
+  any,
 } = R;
 
 interface Balances {
   [currency: string]: string;
 }
 
-export function formatBalances(balances: Object, usdBalances: Object) {
+export function formatBalances(balances: Object, cadBalances: Object) {
   const table = new Table({
-    head: ['Currency', 'Value', 'USD'],
+    head: ['Currency', 'Value', 'CAD'],
     colAligns: ['left', 'right', 'right'],
   });
 
@@ -39,15 +40,15 @@ export function formatBalances(balances: Object, usdBalances: Object) {
     toPairs,
     sortBy(pipe(
       prop('0'),
-      x => usdBalances[x as string],
+      x => cadBalances[x as string],
     ) as any),
   )(balances);
 
   for (const [currency, amount] of pairs as any) {
-    table.push([currency, `${amount} ${currency}`, `${usdBalances[currency].toFixed(2) || '??'} USD`]);
+    table.push([currency, `${amount} ${currency}`, `${cadBalances[currency].toFixed(2) || '??'} CAD`]);
   }
 
-  table.push(['Total', '-', sum(valuesIn(usdBalances)).toFixed(2) + ' USD']);
+  table.push(['Total', '-', sum(valuesIn(cadBalances)).toFixed(2) + ' CAD']);
 
   return table.toString();
 }
@@ -107,6 +108,7 @@ function sortByMethod(method: SortByMethod, tickers: Tickers) {
 export function formatPerformances(
   performances: Operations.PerformanceByExchange,
   tickers: Tickers,
+  currencies: string[],
   method: SortByMethod = 'usd',
 ) {
   const table = new Table({
@@ -130,6 +132,7 @@ export function formatPerformances(
 
   const transform = pipe(
     filter((x: Operations.Performance) => startsWith('BTC', x.currencyPair)),
+    filter((x: Operations.Performance) => isEmpty(currencies) || any(currency => x.currencyPair.includes(currency), currencies)),
     (x: Operations.PerformanceByExchange) => toPairs(x),
     sortBy(sortByMethod(method, tickers)),
   );

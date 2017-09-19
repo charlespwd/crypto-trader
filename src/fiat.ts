@@ -17,3 +17,7 @@ export async function getRate(from, to) {
   const rates = await getRates(from);
   return rates[toCurrency];
 }
+
+export function getUsdPerCad() {
+  return getRate('CAD', 'USD');
+}

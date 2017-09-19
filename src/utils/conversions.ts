@@ -27,10 +27,10 @@ export const toUSD = (balances: Balances, tickers: Tickers): Balances => {
   );
 };
 
-export const toCAD = (balances: Balances, tickers, btcToCadRate) => {
+export const toCAD = (balances: Balances, tickers: Tickers, usdPerCad: number) => {
   const convert = (value, currency) => {
     const btc = toBTC(value, currency, tickers);
-    return btcToCadRate * btc;
+    return btcToUSD(btc, tickers) / usdPerCad;
   };
   return mapObjIndexed(convert, nonZeroBalances(balances));
 };
