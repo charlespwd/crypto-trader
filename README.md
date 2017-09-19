@@ -35,21 +35,21 @@ $ crypto-trader
   ```
   crypto-trader $ balances
   crypto-trader $ balances eth
-  crypto-trader $ balances eth btc ltc 
+  crypto-trader $ balances eth btc ltc
   ```
 
-* `split [options] <amount> <fromCoin>`, splits your coin into `n` top coins by volume
+* `diversify [options] <amount> <fromCoin>`, splits your coin into `n` top coins by volume
 
   * `amount`, (required) how much of your coin you want to split
   * `fromCoin`, (required) the currency of the coin you want to split
-  * `-n, --into [n]`, (optional, default=30) into how many of the top coins you want 
+  * `-n, --into [n]`, (optional, default=30) into how many of the top coins you want
 
   Examples:
 
   ```
-  crypto-trader $ split 10 eth
-  crypto-trader $ split 10 eth -n 50
-  crypto-trader $ split 10 eth --into 50
+  crypto-trader $ diversify 10 eth
+  crypto-trader $ diversify 10 eth -n 50
+  crypto-trader $ diversify 10 eth --into 50
   ```
 
 * `trade <amount> <fromCoin> <toCoin> <currencyPair>`
