@@ -4,9 +4,8 @@ import { log } from './utils';
 import { startsWith, drop } from 'ramda';
 import * as path from 'path';
 const algorithm = 'aes-256-ctr';
-const secretsFilePath = path.join(__dirname, '..', '.crypto-secrets');
-const apiKeyFilePath = path.join(__dirname, '..', '.crypto-apikeys');
-const test = 'crypto-trader!!';
+const home = process.env.CRYPTO_TRADER_HOME || process.env.HOME;
+const secretsFilePath = path.join(home, '.crypto_trader_secrets');
 
 type Secrets = Map<ExchangeName, string>;
 type ApiKeys = Map<ExchangeName, string>;
@@ -41,7 +40,7 @@ function jsonToMap(jsonStr) {
 
 function encrypt(password, map: Map<ExchangeName, string>): string {
   const cipher = crypto.createCipher(algorithm, password);
-  let crypted = cipher.update(test + mapToJson(map), 'utf8', 'hex');
+  let crypted = cipher.update(mapToJson(map), 'utf8', 'hex');
   crypted += cipher.final('hex');
   return crypted;
 }
@@ -50,23 +49,29 @@ function decrypt(password, text): Map<ExchangeName, string> {
   const decipher = crypto.createDecipher(algorithm, password);
   let dec = decipher.update(text, 'hex', 'utf8');
   dec += decipher.final('utf8');
-  if (!startsWith(test, dec)) throw new Error('BAD_PASSWORD');
-  return jsonToMap(drop(test.length, dec)) as Map<ExchangeName, string>;
+  try {
+    return jsonToMap(dec) as Map<ExchangeName, string>;
+  } catch (e) {
+    throw new Error('BAD_PASSWORD');
+  }
 }
 
 export function save() {
-  fs.writeFileSync(secretsFilePath, encrypt(pass, secrets));
-  fs.writeFileSync(apiKeyFilePath, encrypt(pass, apiKeys));
+  const state = {
+    secrets: encrypt(pass, secrets),
+    apiKeys: encrypt(pass, apiKeys),
+  };
+  fs.writeFileSync(secretsFilePath, JSON.stringify(state, null, 2));
 }
 
 export function load(password) {
   try {
-    const secText = fs.readFileSync(secretsFilePath, { encoding: 'utf8' });
-    const keyText = fs.readFileSync(apiKeyFilePath, { encoding: 'utf8' });
-    const secretsAttempt = decrypt(password, secText);
-    const apiKeysAttempt = decrypt(password, keyText);
-    secrets = secretsAttempt;
-    apiKeys = apiKeysAttempt;
+    const text = fs.readFileSync(secretsFilePath, { encoding: 'utf8' });
+    const state = JSON.parse(text);
+    state.secrets = decrypt(password, state.secrets);
+    state.apiKeys = decrypt(password, state.apiKeys);
+    secrets = state.secrets;
+    apiKeys = state.apiKeys;
     pass = password;
   } catch (e) {
     if (e.code === 'ENOENT') {
