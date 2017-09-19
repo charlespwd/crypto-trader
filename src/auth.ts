@@ -2,9 +2,10 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import { log } from './utils';
 import { startsWith, drop } from 'ramda';
+import * as path from 'path';
 const algorithm = 'aes-256-ctr';
-const secretsFilePath = '.crypto-secrets';
-const apiKeyFilePath = '.crypto-apikeys';
+const secretsFilePath = path.join(__dirname, '..', '.crypto-secrets');
+const apiKeyFilePath = path.join(__dirname, '..', '.crypto-apikeys');
 const test = 'crypto-trader!!';
 
 type Secrets = Map<ExchangeName, string>;
@@ -69,6 +70,7 @@ export function load(password) {
     pass = password;
   } catch (e) {
     if (e.code === 'ENOENT') {
+      pass = password;
       save();
       return load(password);
     }
