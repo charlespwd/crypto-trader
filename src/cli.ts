@@ -136,7 +136,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
 
 cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(withHandledLoginErrors(async function doTrade(args: any, callback: Function) {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const params = {
       exchange: api,
@@ -163,12 +163,12 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
           params.toCoin,
           params.pair,
         );
-        this.log(`SUCCESS: GOT ${result} ${params.toCoin} FROM ${params.amount} ${params.fromCoin}`);
+        log(`SUCCESS: GOT ${result} ${params.toCoin} FROM ${params.amount} ${params.fromCoin}`);
       } catch (e) {
-        this.log(`FAILURE: COULD NOT TRADE`);
+        log(`FAILURE: COULD NOT TRADE`);
       }
     } else {
-      this.log('OK! Not doing it!');
+      log('OK! Not doing it!');
     }
 
     callback();
@@ -259,21 +259,21 @@ cli.command('summary', 'Displays your portfolio summary.')
 
 cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(withHandledLoginErrors(async function pairs(args: any, callback: Function) {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const tickers = await api.tickers();
-    this.log(formatPairs(tickers, args.currencies));
+    log(formatPairs(tickers, args.currencies));
     callback();
   }));
 
 cli.command('quote [currency]', 'Get a quote for a currency in USD')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(withHandledLoginErrors(async function quote(args: any, callback: Function) {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const currency = args.currency.toUpperCase() as string;
     if (R.contains(currency, ['CAD', 'EUR'])) {
       const rate = await getRate(currency, 'USD');
-      this.log(`1 ${currency} = ${rate} USD`);
+      log(`1 ${currency} = ${rate} USD`);
     } else {
       const rate = await getUsdPerCad();
       const tickers = await api.tickers();
@@ -282,8 +282,8 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
       };
       const usd = toUSD(balances, tickers)[currency.toUpperCase()];
       const cad = usd / rate;
-      this.log(`1 ${currency} = ${usd.toFixed(5)} USD`);
-      this.log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
+      log(`1 ${currency} = ${usd.toFixed(5)} USD`);
+      log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
     }
     callback();
   }));
