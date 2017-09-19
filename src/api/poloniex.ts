@@ -1,12 +1,12 @@
 import * as request from 'request-promise-native';
 import * as crypto from 'crypto';
 import * as R from 'ramda';
-import { throttle } from 'lodash';
 import * as qs from 'query-string';
 import * as moment from 'moment';
 import * as auth from '../auth';
 import { PROD } from '../constants';
 import { timeout, log, Queue, withLoginFactory } from '../utils';
+const throttle = require('lodash.throttle');
 
 const API_LIMIT = 6; // calls per second
 const queue = new Queue(API_LIMIT);
