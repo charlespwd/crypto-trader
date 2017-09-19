@@ -4,6 +4,7 @@ import trade from './operations/trade';
 import { performanceByExchange } from './operations/performance';
 import { poloniex, coinbase, bittrex } from './api';
 import { getRate, getUsdPerCad } from './fiat';
+import * as auth from './auth';
 import {
   formatPerformances,
   formatAddresses,
@@ -14,9 +15,11 @@ import {
   setLogger,
   toCAD,
   toUSD,
+  withHandledLoginErrors,
 } from './utils';
 const yesno = require('yesno');
 const Table = require('cli-table');
+const prompt = require('prompt');
 
 const cli = require('vorpal')();
 const ask = (question: string, def: any) => new Promise((r) => {
@@ -52,7 +55,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .alias('b')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async (args: any, callback: Function) => {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const [tickers, balances, usdPerCad] = await Promise.all([
       api.tickers(),
@@ -74,11 +77,11 @@ cli.command('balances [coins...]', 'Display your current balances.')
     log(formatBalances(cryptoBalances, toCAD(cryptoBalances, tickers, usdPerCad)));
 
     callback();
-  });
+  }));
 
 cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async (args: any, callback: Function) => {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
       api: ex(args.options.exchange),
@@ -100,12 +103,12 @@ cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.
       log('Ok! Not doing it.');
     }
     callback();
-  });
+  }));
 
 cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
   .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async (args: any, callback: Function) => {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
       api: ex(args.options.exchange),
@@ -129,11 +132,11 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
       log('Ok! Not doing it.');
     }
     callback();
-  });
+  }));
 
 cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async function doTrade(args: any, callback: Function) {
+  .action(withHandledLoginErrors(async function doTrade(args: any, callback: Function) {
     const api = ex(args.options.exchange);
     const params = {
       exchange: api,
@@ -169,7 +172,7 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
     }
 
     callback();
-  });
+  }));
 
 const pp = (x: number) => x.toFixed(2);
 
@@ -177,7 +180,7 @@ cli.command('summary', 'Displays your portfolio summary.')
   .option('-r, --rate [rate]', 'the CAD/USD rate.')
   .option('-b, --buy-rate [buyRate]', 'the CAD/USD rate at which you bought.')
   .option('-c, --current-rate [currentRate]', 'the CAD/USD rate today.')
-  .action(async (args: any, callback: Function) => {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const table = new Table({
       head: ['Description', 'CAD', 'USD'],
       colAligns: ['left', 'right', 'right'],
@@ -252,20 +255,20 @@ cli.command('summary', 'Displays your portfolio summary.')
 
     log(table.toString());
     callback();
-  });
+  }));
 
 cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async function pairs(args: any, callback: Function) {
+  .action(withHandledLoginErrors(async function pairs(args: any, callback: Function) {
     const api = ex(args.options.exchange);
     const tickers = await api.tickers();
     this.log(formatPairs(tickers, args.currencies));
     callback();
-  });
+  }));
 
 cli.command('quote [currency]', 'Get a quote for a currency in USD')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async function quote(args: any, callback: Function) {
+  .action(withHandledLoginErrors(async function quote(args: any, callback: Function) {
     const api = ex(args.options.exchange);
     const currency = args.currency.toUpperCase() as string;
     if (R.contains(currency, ['CAD', 'EUR'])) {
@@ -283,12 +286,12 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
       this.log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
     }
     callback();
-  });
+  }));
 
 cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addresses from an exchange')
   .alias('address')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(async (args: any, callback: Function) => {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const currency = (args.currency || '').toUpperCase() as string;
     const addresses = await api.addresses();
@@ -298,14 +301,14 @@ cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addres
       log(formatAddresses(addresses));
     }
     callback();
-  });
+  }));
 
 cli.command('performance [currencies...]', 'Get a list of performances by exchange')
   .alias('performances')
   .alias('perf')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .option('-s, --sort-by [method]', 'The column to sort by', ['profit', 'usd', 'percent'])
-  .action(async (args: any, callback: Function) => {
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const [tickers, trades] = await Promise.all([
       api.tickers(),
@@ -318,6 +321,22 @@ cli.command('performance [currencies...]', 'Get a list of performances by exchan
       args.options['sort-by'],
     ));
     callback();
+  }));
+
+cli.command('login <exchange>', 'Setup api keys and secrets for an exchange')
+  .action((args: any, callback: Function) => {
+    const api = ex(args.exchange);
+
+    prompt.start();
+    prompt.message = '';
+    prompt.delimiter = '';
+    prompt.get(['API_KEY', 'API_SECRET'], (err, result) => {
+      auth.setKey(api.name as ExchangeName, result.API_KEY);
+      auth.setSecret(api.name as ExchangeName, result.API_SECRET);
+      auth.save();
+      api.init();
+      callback();
+    });
   });
 
 

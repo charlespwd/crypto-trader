@@ -1,3 +1,5 @@
 node_modules
 .env
 .hgignore
+.crypto-apikeys
+.crypto-secrets

@@ -1,7 +1,8 @@
 import * as request from 'request-promise-native';
 import * as qs from 'query-string';
 import * as crypto from 'crypto';
-import { timeout, log } from '../utils';
+import * as auth from '../auth';
+import { timeout, log, withLoginFactory } from '../utils';
 import {
   map,
   merge,
@@ -15,21 +16,39 @@ import {
   groupBy,
 } from 'ramda';
 
-const API_KEY = process.env.BITTREX_API_KEY;
-const API_SECRET = process.env.BITTREX_API_SECRET;
 const BASE_URL = 'https://bittrex.com/api/v1.1/';
+
+const state = {
+  exchangeName: 'bittrex',
+  isLoggedIn: false,
+  API_KEY: null,
+  API_SECRET: null,
+};
+
+const withLogin = withLoginFactory(state);
+
+function init() {
+  const API_KEY = auth.getKey('bittrex');
+  const API_SECRET = auth.getSecret('bittrex');
+
+  if (state.isLoggedIn || !API_KEY || !API_SECRET) return;
+
+  state.API_KEY = API_KEY;
+  state.API_SECRET = API_SECRET;
+  state.isLoggedIn = true;
+}
 
 function requestUrl(method: string, options: {} = {}) {
   const nonce = Date.now() * 1000;
   const params = merge(options, {
-    apikey: API_KEY,
+    apikey: state.API_KEY,
     nonce: Date.now() * 1000,
   });
   return `${BASE_URL}${method}?${qs.stringify(params)}`;
 }
 
 function signature(url) {
-  const hmac = crypto.createHmac('sha512', API_SECRET);
+  const hmac = crypto.createHmac('sha512', state.API_SECRET);
   hmac.update(url);
   return hmac.digest('hex');
 }
@@ -302,13 +321,14 @@ async function trades(): Promise<TradeHistory> {
 
 const bittrex: Api = {
   name: 'bittrex',
-  addresses,
-  tickers,
-  balances,
-  buy,
-  sell,
-  buyRate,
-  sellRate,
-  trades,
+  init,
+  addresses: withLogin(addresses),
+  tickers: withLogin(tickers),
+  balances: withLogin(balances),
+  buy: withLogin(buy),
+  sell: withLogin(sell),
+  buyRate: withLogin(buyRate),
+  sellRate: withLogin(sellRate),
+  trades: withLogin(trades),
 };
 export default bittrex;

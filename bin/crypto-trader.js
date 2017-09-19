@@ -1,3 +1,2 @@
 #!/bin/env node
-const cli = require('../lib/cli.js');
-cli.run();
+const cli = require('../lib/index.js');

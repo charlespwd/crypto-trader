@@ -3,9 +3,10 @@ import * as crypto from 'crypto';
 import * as R from 'ramda';
 import { throttle } from 'lodash';
 import * as qs from 'query-string';
-import { PROD } from '../constants';
 import * as moment from 'moment';
-import { timeout, log, Queue } from '../utils';
+import * as auth from '../auth';
+import { PROD } from '../constants';
+import { timeout, log, Queue, withLoginFactory } from '../utils';
 
 const API_LIMIT = 6; // calls per second
 const queue = new Queue(API_LIMIT);
@@ -13,13 +14,29 @@ const enqueue = queue.enqueue.bind(queue);
 
 const PUBLIC_API = 'https://poloniex.com/public';
 const TRADING_API = 'https://poloniex.com/tradingApi';
-const API_KEY = process.env.POLONIEX_API_KEY;
-const API_SECRET = process.env.POLONIEX_API_SECRET;
 
-if (!API_SECRET || !API_KEY) throw new Error('POLONIEX_API_KEY or POLONIEX_API_SECRET missing.');
+const state = {
+  exchangeName: 'poloniex',
+  isLoggedIn: false,
+  API_KEY: null,
+  API_SECRET: null,
+};
+
+const withLogin = withLoginFactory(state);
+
+function init() {
+  const API_KEY = auth.getKey('poloniex');
+  const API_SECRET = auth.getSecret('poloniex');
+
+  if (state.isLoggedIn || !API_SECRET || !API_KEY) return;
+
+  state.API_KEY = API_KEY;
+  state.API_SECRET = API_SECRET;
+  state.isLoggedIn = true;
+}
 
 function signature(body: any) {
-  const hmac = crypto.createHmac('sha512', API_SECRET);
+  const hmac = crypto.createHmac('sha512', state.API_SECRET);
   hmac.update(body);
   return hmac.digest('hex');
 }
@@ -56,7 +73,7 @@ function post(command: string, options = {}) {
     url: TRADING_API,
     form: body,
     headers: {
-      Key: API_KEY,
+      Key: state.API_KEY,
       Sign: signature(body),
     },
   };
@@ -218,14 +235,15 @@ const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPai
 const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk;
 const api: Api = {
   name: 'poloniex',
-  balances,
-  tickers: throttle(tickers, 1000, { leading: true, trailing: false }),
-  sell: PROD ? makeTradeCommand('sell') : (x => logged('sell', x)),
-  buy: PROD ? makeTradeCommand('buy') : (x => logged('buy', x)),
-  sellRate,
-  buyRate,
-  addresses,
-  trades,
+  init,
+  balances: withLogin(balances),
+  tickers: withLogin(throttle(tickers, 1000, { leading: true, trailing: false })),
+  sell: withLogin(PROD ? makeTradeCommand('sell') : (x => logged('sell', x))),
+  buy: withLogin(PROD ? makeTradeCommand('buy') : (x => logged('buy', x))),
+  sellRate: withLogin(sellRate),
+  buyRate: withLogin(buyRate),
+  addresses: withLogin(addresses),
+  trades: withLogin(trades),
 };
 
 export default api;

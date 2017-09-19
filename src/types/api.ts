@@ -1,3 +1,5 @@
+declare type ExchangeName = 'poloniex' | 'bittrex' | 'coinbase';
+
 declare interface Ticker {
   currencyPair: string;
   last: number;
@@ -47,6 +49,7 @@ declare interface TradeHistory {
 
 declare interface Api {
   name: string;
+  init(): void;
   tickers(): Promise<Tickers>;
   addresses(): Promise<DepositAddresses>;
   balances(): Promise<Balances>;

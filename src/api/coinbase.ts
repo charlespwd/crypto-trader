@@ -2,16 +2,35 @@ import * as request from 'request-promise-native';
 import { Client } from 'coinbase';
 import { promisify } from 'util';
 import * as R from 'ramda';
+import * as auth from '../auth';
+import { withLoginFactory } from '../utils';
 
-const API_KEY = process.env.COINBASE_API_KEY;
-const API_SECRET = process.env.COINBASE_API_SECRET;
-const client = new Client({
-  apiKey: API_KEY,
-  apiSecret: API_SECRET,
-});
+const state = {
+  exchangeName: 'coinbase',
+  isLoggedIn: false,
+  client: null,
+  getAccount: null,
+  getAccounts: null,
+};
 
-const getAccount = promisify(client.getAccount.bind(client));
-const getAccounts = promisify(client.getAccounts.bind(client));
+const withLogin = withLoginFactory(state);
+
+function init(): void {
+  const API_KEY = auth.getKey('coinbase');
+  const API_SECRET = auth.getSecret('coinbase');
+
+  if (state.isLoggedIn || !API_KEY || !API_SECRET) return;
+
+  const client = new Client({
+    apiKey: API_KEY,
+    apiSecret: API_SECRET,
+  });
+
+  state.client = client;
+  state.getAccount = promisify(client.getAccount.bind(client));
+  state.getAccounts = promisify(client.getAccounts.bind(client));
+  state.isLoggedIn = true;
+}
 
 interface CoinbaseBalance {
   amount: string;
@@ -28,7 +47,7 @@ const toBalances = R.pipe(
 );
 
 async function balances(): Promise<Balances> {
-  const accountData = await getAccounts({});
+  const accountData = await state.getAccounts({});
   return toBalances(accountData) as Balances;
 }
 
@@ -39,11 +58,11 @@ const toTotal = R.pipe(
 );
 
 async function totalSpent(): Promise<number> {
-  const accountData = await getAccounts({});
+  const accountData = await state.getAccounts({});
 
   let txs = [];
   for (const accountD of accountData) {
-    const account = await getAccount(accountD.id);
+    const account = await state.getAccount(accountD.id);
     const getTransactions = promisify(account.getTransactions.bind(account));
     const transactions = await getTransactions(null);
     txs = txs.concat(transactions);
@@ -72,11 +91,12 @@ interface CoinbaseApi extends Api {
 
 const api: CoinbaseApi = {
   name: 'coinbase',
-  balances,
-  totalSpent,
-  tickers,
-  sell,
-  buy,
+  init,
+  balances: withLogin(balances),
+  totalSpent: withLogin(totalSpent),
+  tickers: withLogin(tickers),
+  sell: withLogin(sell),
+  buy: withLogin(buy),
   trades: () => {
     throw new Error('not implemented');
   },
