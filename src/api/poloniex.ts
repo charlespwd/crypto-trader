@@ -4,7 +4,6 @@ import * as R from 'ramda';
 import * as qs from 'query-string';
 import * as moment from 'moment';
 import * as auth from '../auth';
-import { PROD } from '../constants';
 import { timeout, log, Queue, withLoginFactory } from '../utils';
 const throttle = require('lodash.throttle');
 
@@ -238,8 +237,8 @@ const api: Api = {
   init,
   balances: withLogin(balances),
   tickers: withLogin(throttle(tickers, 1000, { leading: true, trailing: false })),
-  sell: withLogin(PROD ? makeTradeCommand('sell') : (x => logged('sell', x))),
-  buy: withLogin(PROD ? makeTradeCommand('buy') : (x => logged('buy', x))),
+  sell: withLogin(makeTradeCommand('sell')),
+  buy: withLogin(makeTradeCommand('buy')),
   sellRate: withLogin(sellRate),
   buyRate: withLogin(buyRate),
   addresses: withLogin(addresses),

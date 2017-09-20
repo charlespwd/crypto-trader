@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import trade from './trade';
+import trade, { isDryRunDefault } from './trade';
 import { sleep, log } from '../utils';
 
 const BLACKLIST = [
@@ -49,12 +49,29 @@ async function getCoinsToBuy(s: Strategy, api: Api, fromCoin: string): Promise<s
   }
 }
 
-export async function execute(api: Api, fromAmount: number, strategy: Strategy, fromCoin = 'ETH') {
+export async function execute(
+  api: Api,
+  fromAmount: number,
+  strategy: Strategy,
+  fromCoin = 'ETH',
+  isDryRun = isDryRunDefault,
+) {
+  if (isDryRun) {
+    log('\nThis is a dry run. These are not real trades.');
+  }
+
   const coinsToBuy = await getCoinsToBuy(strategy, api, fromCoin);
   const N = coinsToBuy.length;
   const fromAmountToBuyAsBTC = fromAmount * N / (N + 1);
   const btcAmount = fromCoin !== 'BTC'
-    ? await trade(api, fromAmountToBuyAsBTC, fromCoin, 'BTC', `BTC_${fromCoin}`)
+    ? await trade({
+      api,
+      fromAmount: fromAmountToBuyAsBTC,
+      fromCoin,
+      toCoin: 'BTC',
+      currencyPair: `BTC_${fromCoin}`,
+      isDryRun,
+    })
     : fromAmountToBuyAsBTC;
 
   if (btcAmount === 0) {
@@ -70,13 +87,22 @@ export async function execute(api: Api, fromAmount: number, strategy: Strategy, 
   log(`SPLITTING ${btcAmount} BTC into ${N} currencies, COIN VALUE ${btcValueOfCoin} BTC`);
 
   if (btcValueOfCoin < 0.00050000) {
-    // 0.0005 = from / (N + 1) => N = from / 0.0005 - 1
-    throw new Error(`50K SAT minimum per trade try splitting ${fromAmount} BTC into ${Math.floor(btcAmount / 0.0005) - 1} coins`);
+    throw new Error(`50K SAT minimum per trade try splitting ${fromAmount} ${fromCoin} into ${Math.floor(btcAmount / 0.0005) + 1} coins`);
   }
 
   const unable = [];
   const amounts = coinsToBuy.map(
-    coin => [coin, trade(api, btcValueOfCoin, 'BTC', coin, `BTC_${coin}`)],
+    coin => [
+      coin,
+      trade({
+        api,
+        fromAmount: btcValueOfCoin,
+        fromCoin: 'BTC',
+        toCoin: coin,
+        currencyPair: `BTC_${coin}`,
+        isDryRun,
+      }),
+    ],
   );
 
   for (const coinAndAmountPromise of amounts) {

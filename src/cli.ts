@@ -51,6 +51,22 @@ function ex(exchange: string = 'poloniex'): Api {
   }
 }
 
+cli.command('login <exchange>', 'Setup api keys and secrets for an exchange.')
+  .action((args: any, callback: Function) => {
+    const api = ex(args.exchange);
+
+    prompt.start();
+    prompt.message = '';
+    prompt.delimiter = '';
+    prompt.get(['API_KEY', 'API_SECRET'], (err, result) => {
+      auth.setKey(api.name as ExchangeName, result.API_KEY);
+      auth.setSecret(api.name as ExchangeName, result.API_SECRET);
+      auth.save();
+      api.init();
+      callback();
+    });
+  });
+
 cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .alias('b')
@@ -80,6 +96,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
   }));
 
 cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.')
+  .option('-d, --dry-run', `Don't actually perform the trade, make a dry run to see what it would look like.`)
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const params = {
@@ -87,6 +104,7 @@ cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.
       api: ex(args.options.exchange),
       fromCoin: args.fromCoin.toUpperCase(),
       strategy: strategy.namedListStrategy(args.coins as string[]),
+      isDryRun: args.options['dry-run'],
     };
     const ok = await ask(
       `Are you sure you want to turn ${params.amount} ${params.fromCoin} into ${params.strategy.value.join(', ')} on ${params.api.name}? [y/n]`,
@@ -98,6 +116,7 @@ cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.
         params.amount,
         params.strategy,
         params.fromCoin,
+        params.isDryRun,
       );
     } else {
       log('Ok! Not doing it.');
@@ -108,11 +127,13 @@ cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.
 cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins by volume.')
   .option('-n, --into [n]', 'Amount of top coins to deversify into. (default = 30)')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .option('-d, --dry-run', `Don't actually perform the trade, make a dry run to see what it would look like.`)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
       api: ex(args.options.exchange),
       fromCoin: args.fromCoin.toUpperCase(),
+      isDryRun: args.options['dry-run'],
       strategy: strategy.topByVolumeStrategy(
         args.options.into ? parseInt(args.options.into, 10) : 30,
       ),
@@ -127,6 +148,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
         params.amount,
         params.strategy,
         params.fromCoin,
+        params.isDryRun,
       );
     } else {
       log('Ok! Not doing it.');
@@ -136,6 +158,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
 
 cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin toCoin on given currency pair.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .option('-d, --dry-run', `Don't actually perform the trade, make a dry run to see what it would look like.`)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const params = {
@@ -144,6 +167,7 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
       fromCoin: args.fromCoin.toUpperCase(),
       toCoin: args.toCoin.toUpperCase(),
       pair: args.currencyPair.toUpperCase(),
+      isDryRun: args.options['dry-run'],
     };
     const tickers = await api.tickers();
     const ok = await ask(
@@ -156,13 +180,14 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
 
     if (ok) {
       try {
-        const result = await trade(
-          params.exchange,
-          params.amount,
-          params.fromCoin,
-          params.toCoin,
-          params.pair,
-        );
+        const result = await trade({
+          api: params.exchange,
+          fromAmount: params.amount,
+          fromCoin: params.fromCoin,
+          toCoin: params.toCoin,
+          currencyPair: params.pair,
+          isDryRun: params.isDryRun,
+        });
         log(`SUCCESS: GOT ${result} ${params.toCoin} FROM ${params.amount} ${params.fromCoin}`);
       } catch (e) {
         log(`FAILURE: COULD NOT TRADE`);
@@ -177,6 +202,7 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
 const pp = (x: number) => x.toFixed(2);
 
 cli.command('summary', 'Displays your portfolio summary.')
+  .hidden()
   .option('-r, --rate [rate]', 'the CAD/USD rate.')
   .option('-b, --buy-rate [buyRate]', 'the CAD/USD rate at which you bought.')
   .option('-c, --current-rate [currentRate]', 'the CAD/USD rate today.')
@@ -266,7 +292,7 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
     callback();
   }));
 
-cli.command('quote [currency]', 'Get a quote for a currency in USD')
+cli.command('quote [currency]', 'Get a quote for a currency in USD.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
@@ -288,7 +314,7 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD')
     callback();
   }));
 
-cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addresses from an exchange')
+cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addresses from an exchange.')
   .alias('address')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
@@ -303,7 +329,7 @@ cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addres
     callback();
   }));
 
-cli.command('performance [currencies...]', 'Get a list of performances by exchange')
+cli.command('performance [currencies...]', 'Get a list of performances by exchange.')
   .alias('performances')
   .alias('perf')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
@@ -322,22 +348,6 @@ cli.command('performance [currencies...]', 'Get a list of performances by exchan
     ));
     callback();
   }));
-
-cli.command('login <exchange>', 'Setup api keys and secrets for an exchange')
-  .action((args: any, callback: Function) => {
-    const api = ex(args.exchange);
-
-    prompt.start();
-    prompt.message = '';
-    prompt.delimiter = '';
-    prompt.get(['API_KEY', 'API_SECRET'], (err, result) => {
-      auth.setKey(api.name as ExchangeName, result.API_KEY);
-      auth.setSecret(api.name as ExchangeName, result.API_SECRET);
-      auth.save();
-      api.init();
-      callback();
-    });
-  });
 
 
 export function run() {

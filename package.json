@@ -13,12 +13,12 @@
   },
   "scripts": {
     "build": "rm -rf lib && tsc -p . --outDir lib",
-    "devel": "yarn watch",
+    "devel": "NODE_ENV=devel yarn watch",
     "precommit": "tslint -t verbose src/**",
-    "start": "ts-node src/index.ts",
+    "start": "NODE_ENV=devel ts-node src/index.ts",
     "test": "multi='spec=-' mocha src/**/*.spec.ts",
     "test:watch": "multi='mocha-notifier-reporter=- min=-' mocha --watch src/**/*.spec.ts",
-    "watch": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
+    "watch": "NODE_ENV=devel nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
   },
   "dependencies": {
     "cli-table": "^0.3.1",

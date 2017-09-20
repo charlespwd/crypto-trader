@@ -1,6 +1,5 @@
 import * as R from 'ramda';
 import { sleep, log, enqueue } from '../utils';
-import { PROD } from '../constants';
 
 // Some definitons, for a currencyPair BTC_ETH
 // amount = (price in ETH)
@@ -38,13 +37,31 @@ async function successfulResponse(isBuying, amount, total, rate) {
   return isBuying ? amount : total;
 }
 
-// Scenarios
-// | fromCoin | toCoin | Trade Type | return value
-// | ------   | ----   | ---------- | ----------
-// | BTC      | ETH    | buy        | ETH (amount)
-// | ETH      | BTC    | sell       | BTC (total)
-export default async function trade(api: Api, fromAmount: number, fromCoin: string, toCoin: string, currencyPair: string, n = 0): Promise<number> {
-  if (fromCoin === toCoin) return fromAmount;
+interface MakeTradeOptions {
+  api: Api;
+  fromAmount: number;
+  fromCoin: string;
+  toCoin: string;
+  currencyPair: string;
+  retryCount?: number;
+  isDryRun?: boolean;
+}
+
+export const isDryRunDefault = process.env.NODE_ENV === 'devel';
+if (isDryRunDefault) {
+  log('Running with --dry-run by default');
+}
+
+export default async function trade({
+  api,
+  fromAmount,
+  fromCoin,
+  toCoin,
+  currencyPair,
+  retryCount = 0,
+  isDryRun = isDryRunDefault,
+}: MakeTradeOptions): Promise<number> {
+  if (toCoin === fromCoin) return fromAmount;
   const isBuying = isBuyOrder(fromCoin, toCoin, currencyPair);
   const tradeFn = isBuying ? api.buy : api.sell;
 
@@ -53,17 +70,26 @@ export default async function trade(api: Api, fromAmount: number, fromCoin: stri
     const rate = getRate(api, isBuying, currencyPair, tickers);
     const amount = getAmount(isBuying, fromAmount, rate);
     const total = getTotal(isBuying, fromAmount, rate);
-    log(`TRADING: ${fromAmount} ${fromCoin} => ${isBuying ? amount : total} ${toCoin}`);
+    log(`TRADING${isDryRun ? ' [dry run]' : ''}: ${fromAmount} ${fromCoin} => ${isBuying ? amount : total} ${toCoin}`);
 
-    if (amount < 0.001 || n > 5) return 0;
+    if (amount < 0.001 || retryCount > 5) return 0;
 
-    return PROD
+    return !isDryRun
       ? await tradeFn({ amount: amount.toString(), currencyPair, rate: rate.toString() })
       : await enqueue(R.partial(successfulResponse, [isBuying, amount, total, rate])) as number;
   } catch (e) {
-    log(`Failed to ${isBuying ? 'buy' : 'sell'} ${toCoin}, retry count: ${n}, retrying in 2s`);
+    if (retryCount > 5) return 0;
+    log(`Failed to ${isBuying ? 'buy' : 'sell'} ${toCoin}, retry count: ${retryCount}, retrying in 2s`);
     console.error(e);
     await sleep(2000);
-    return trade(api, fromAmount, fromCoin, toCoin, currencyPair, n + 1);
+    return trade({
+      api,
+      fromAmount,
+      fromCoin,
+      toCoin,
+      currencyPair,
+      retryCount: retryCount + 1,
+      isDryRun,
+    });
   }
 }
