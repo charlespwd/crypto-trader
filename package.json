@@ -2,7 +2,7 @@
   "name": "crypto-trader",
   "version": "0.1.2",
   "description": "A command line tool for diversifying your portfolio on crypto currency exchanges (poloniex, bittrex).",
-  "main": "lib/index.js",
+  "main": "lib/run-cli.js",
   "bin": {
     "crypto-trader": "bin/crypto-trader.js"
   },
@@ -15,10 +15,10 @@
     "build": "rm -rf lib && tsc -p . --outDir lib",
     "devel": "NODE_ENV=devel yarn watch",
     "precommit": "tslint -t verbose src/**",
-    "start": "NODE_ENV=devel ts-node src/index.ts",
+    "start": "NODE_ENV=devel ts-node src/run-cli.ts",
     "test": "multi='spec=-' mocha src/**/*.spec.ts",
     "test:watch": "multi='mocha-notifier-reporter=- min=-' mocha --watch src/**/*.spec.ts",
-    "watch": "NODE_ENV=devel nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts"
+    "watch": "NODE_ENV=devel nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/run-cli.ts"
   },
   "dependencies": {
     "cli-table": "^0.3.1",
