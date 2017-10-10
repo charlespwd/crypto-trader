@@ -1,10 +1,11 @@
 import * as R from 'ramda';
-import * as strategy from './operations/strategy';
-import trade from './operations/trade';
-import { performanceByExchange } from './operations/performance';
-import { poloniex, coinbase, bittrex } from './api';
-import { getRate, getUsdPerCad } from './fiat';
-import * as auth from './auth';
+import * as strategy from '../operations/strategy';
+import trade from '../operations/trade';
+import summary from '../operations/summary';
+import { performanceByExchange } from '../operations/performance';
+import { poloniex, coinbase, bittrex } from '../api';
+import { getRate, getUsdPerCad } from '../fiat';
+import * as auth from '../auth';
 import {
   formatPerformances,
   formatAddresses,
@@ -16,7 +17,7 @@ import {
   toCAD,
   toUSD,
   withHandledLoginErrors,
-} from './utils';
+} from '../utils';
 const yesno = require('yesno');
 const Table = require('cli-table');
 const prompt = require('prompt');
@@ -211,49 +212,44 @@ cli.command('summary', 'Displays your portfolio summary.')
       head: ['Description', 'CAD', 'USD'],
       colAligns: ['left', 'right', 'right'],
     });
-    const [pTickers, pBalances, bTickers, bBalances, totalSpent, currentRate] = await Promise.all([
-      ex('poloniex').tickers(),
-      ex('poloniex').balances(),
-      ex('bittrex').tickers(),
-      ex('bittrex').balances(),
-      coinbase.totalSpent(),
-      getRate('CAD', 'USD'),
-    ]);
-    const poloUsdBalances = toUSD(pBalances, pTickers);
-    const bittUsdBalances = toUSD(bBalances, bTickers);
-    const usdBalances = R.mergeWith(R.add, poloUsdBalances, bittUsdBalances);
-    const estimatedUSDTotal = R.sum(R.values(usdBalances) as number[]);
-    const { options } = args;
-    const rate = options.rate || 0.79;
-    const buyRate = options.buyRate || rate;
-    const coinbaseFee = 0.0399;
-    const exchangeFee = 0.0025 * 4;
+
+    const {
+      buyRate,
+      coinbaseFee,
+      currentRate,
+      estimatedUSDTotal,
+      exchangeFee,
+      totalAfterFees,
+      totalSpent,
+      roiAfterFees,
+      roiOnMoneySpent,
+      coinbaseFees,
+      exchangeFees,
+      totalFees,
+    } = await summary(args);
 
     table.push([
       'total spent',
       pp(totalSpent),
-      pp(totalSpent * rate),
+      pp(totalSpent * buyRate),
     ]);
-
     table.push([
       'coinbase fees',
-      pp(totalSpent * coinbaseFee),
-      pp(totalSpent * coinbaseFee * buyRate),
+      pp(coinbaseFees),
+      pp(coinbaseFees * buyRate),
     ]);
 
     table.push([
       'exchange fees',
-      pp(totalSpent * exchangeFee),
-      pp(totalSpent * exchangeFee * buyRate),
+      pp(exchangeFees),
+      pp(exchangeFees * buyRate),
     ]);
 
     table.push([
       'total fees',
-      pp(totalSpent * (coinbaseFee + exchangeFee)),
-      pp(totalSpent * (coinbaseFee + exchangeFee) * buyRate),
+      pp(totalFees),
+      pp(totalFees * buyRate),
     ]);
-
-    const totalAfterFees = totalSpent * (1 - coinbaseFee - exchangeFee);
 
     table.push([
       'total after fees',
@@ -270,13 +266,13 @@ cli.command('summary', 'Displays your portfolio summary.')
     table.push([
       'ROI (after fees)',
       '-',
-      pp(((estimatedUSDTotal / currentRate / totalAfterFees) - 1) * 100) + '%',
+      pp(roiAfterFees) + '%',
     ]);
 
     table.push([
       'ROI (on money spent)',
       '-',
-      pp(((estimatedUSDTotal / currentRate / totalSpent) - 1) * 100) + '%',
+      pp(roiOnMoneySpent) + '%',
     ]);
 
     log(table.toString());
