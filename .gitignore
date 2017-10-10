@@ -4,3 +4,4 @@ node_modules
 .crypto-apikeys
 .crypto-secrets
 yarn-error.log
+lib
