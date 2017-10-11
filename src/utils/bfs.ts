@@ -13,7 +13,7 @@ export interface Graph<T> {
   edges: GraphEdges<T>;
 }
 
-export function bfs<T>(graph: Graph<T>, start, end): T[] {
+export function shortestPath<T>(graph: Graph<T>, start, end): T[] {
   const { nodes, edges } = graph;
   const visited = new Set();
   const queue = [];

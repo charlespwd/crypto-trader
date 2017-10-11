@@ -1,3 +1,4 @@
+import '../types/api';
 import {
   filter,
   mapObjIndexed,
@@ -37,24 +38,36 @@ function setEdgeValue(edges, start, end, value) {
   edges[start][end] = value;
 }
 
-type RateFromAtoB = number; // 1 a = RateFromAtoB b
-function tickersToRateGraph(tickers: Tickers): bfs.Graph<RateFromAtoB> {
-  const nodes = new Set();
-  const edges = {};
+type tickerToT<T> = (x: Ticker) => T;
 
-  for (const [currencyPair, ticker] of toPairs<string, Ticker>(tickers)) {
-    const [base, token] = currencyPair.split('_');
-    nodes.add(base);
-    nodes.add(token);
-    setEdgeValue(edges, base, token, 1 / ticker.last);
-    setEdgeValue(edges, token, base, ticker.last);
-  }
+function tickersToGraphFactory<T>(
+  baseToTokenAction: tickerToT<T>,
+  tokenToBaseAction: tickerToT<T>,
+) {
+  return function (tickers: Tickers): bfs.Graph<T> {
+    const nodes = new Set();
+    const edges = {};
 
-  return {
-    nodes,
-    edges,
+    for (const [currencyPair, ticker] of toPairs<string, Ticker>(tickers)) {
+      const [base, token] = currencyPair.split('_');
+      nodes.add(base);
+      nodes.add(token);
+      setEdgeValue(edges, base, token, baseToTokenAction(ticker));
+      setEdgeValue(edges, token, base, tokenToBaseAction(ticker));
+    }
+
+    return {
+      nodes,
+      edges,
+    };
   };
 }
+
+type RateFromAtoB = number; // 1 a = RateFromAtoB b
+const tickersToRateGraph = tickersToGraphFactory(
+  ticker => 1 / ticker.last,
+  ticker => ticker.last,
+);
 
 export function estimate(fromAmount: number, fromCoin: string, toCoin: string, tickers: Tickers): number {
   const graph = tickersToRateGraph(tickers);
@@ -63,7 +76,7 @@ export function estimate(fromAmount: number, fromCoin: string, toCoin: string, t
 
 function estimateFromGraph(fromAmount: number, fromCoin: string, toCoin: string, graph: bfs.Graph<RateFromAtoB>): number {
   if (fromCoin === toCoin) return fromAmount;
-  const rates = bfs.bfs(graph, fromCoin, toCoin);
+  const rates = bfs.shortestPath(graph, fromCoin, toCoin);
   if (!rates) throw new Error(`Cannot convert ${fromCoin} to ${toCoin}.`);
   const rate = rates.reduce((a, b) => a * b, 1);
   return fromAmount * rate;
@@ -76,23 +89,10 @@ type Conversion = {
   tradeType: BuyOrSell,
 };
 const conversion = (tradeType, currencyPair) => ({ tradeType, currencyPair });
-function tickersToConversionGraph(tickers: Tickers): bfs.Graph<Conversion> {
-  const nodes = new Set();
-  const edges = {};
-
-  for (const [currencyPair, ticker] of toPairs<string, Ticker>(tickers)) {
-    const [base, token] = currencyPair.split('_');
-    nodes.add(base);
-    nodes.add(token);
-    setEdgeValue(edges, base, token, conversion('buy', currencyPair));
-    setEdgeValue(edges, token, base, conversion('sell', currencyPair));
-  }
-
-  return {
-    nodes,
-    edges,
-  };
-}
+const tickersToConversionGraph = tickersToGraphFactory(
+  ticker => conversion('buy', ticker.currencyPair),
+  ticker => conversion('sell', ticker.currencyPair),
+);
 
 function tradePathFromConversionGraph(
   fromCoin: string,
@@ -100,7 +100,7 @@ function tradePathFromConversionGraph(
   graph: bfs.Graph<Conversion>,
 ): Conversion[] {
   if (fromCoin === toCoin) return [];
-  const conversions = bfs.bfs(graph, fromCoin, toCoin);
+  const conversions = bfs.shortestPath(graph, fromCoin, toCoin);
   if (!conversions) throw new Error(`Cannot convert ${fromCoin} to ${toCoin}.`);
   return conversions;
 }
