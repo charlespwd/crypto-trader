@@ -2,7 +2,7 @@ import * as R from 'ramda';
 import { poloniex, coinbase, bittrex } from '../api';
 import { getRate } from '../fiat';
 import {
-  toUSD,
+  toUSDBalances,
 } from '../utils';
 
 export default async function summary(args) {
@@ -14,8 +14,8 @@ export default async function summary(args) {
     coinbase.totalSpent(),
     getRate('CAD', 'USD'),
   ]);
-  const poloUsdBalances = toUSD(pBalances, pTickers);
-  const bittUsdBalances = toUSD(bBalances, bTickers);
+  const poloUsdBalances = toUSDBalances(pBalances, pTickers);
+  const bittUsdBalances = toUSDBalances(bBalances, bTickers);
   const usdBalances = R.mergeWith(R.add, poloUsdBalances, bittUsdBalances);
   const estimatedUSDTotal = R.sum(R.values(usdBalances) as number[]);
   const { options } = args;

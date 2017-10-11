@@ -9,17 +9,11 @@ import * as bfs from './bfs';
 
 export const nonZeroBalances = filter(x => x > 0);
 
-const toBTC = (value: number, currency: string, tickers: Tickers) => {
-  if (currency === 'BTC') return value;
-  if (currency === 'USDT') return value / tickers.USDT_BTC.last;
-  return value * path<number>([`BTC_${currency}`, 'last'], tickers);
-};
-
 export const btcToUSD = (value: number, tickers: Tickers) => {
   return estimate(value, 'BTC', 'USDT', tickers);
 };
 
-export const toUSD = (balances: Balances, tickers: Tickers): Balances => {
+export const toUSDBalances = (balances: Balances, tickers: Tickers): Balances => {
   const graph = tickersToGraph(tickers);
   const convert = (value, currency) => estimateFromGraph(value, currency, 'USDT', graph);
   return mapObjIndexed(
@@ -28,7 +22,7 @@ export const toUSD = (balances: Balances, tickers: Tickers): Balances => {
   );
 };
 
-export const toCAD = (balances: Balances, tickers: Tickers, usdPerCad: number) => {
+export const toCADBalances = (balances: Balances, tickers: Tickers, usdPerCad: number) => {
   const graph = tickersToGraph(merge(tickers, {
     USDT_CAD: {
       last: usdPerCad,

@@ -58,7 +58,7 @@ describe('Module: utils', () => {
     });
   });
 
-  describe('Unit: toUSD', () => {
+  describe('Unit: toUSDBalances', () => {
     it('should convert a set of balances to USD', () => {
       const balances = {
         BTC: 1,
@@ -70,7 +70,7 @@ describe('Module: utils', () => {
         BTC_LTC: ticker('BTC_LTC', 0.5),
       };
 
-      expect(utils.toUSD(balances, tickers)).to.eql({
+      expect(utils.toUSDBalances(balances, tickers)).to.eql({
         BTC: 10,
         LTC: 0.5 * 10,
         USDT: 1,

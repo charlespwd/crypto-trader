@@ -4,18 +4,18 @@ import trade from '../operations/trade';
 import summary from '../operations/summary';
 import { performanceByExchange } from '../operations/performance';
 import { poloniex, coinbase, bittrex } from '../api';
-import { getRate, getUsdPerCad } from '../fiat';
+import * as fiat from '../fiat';
 import * as auth from '../auth';
 import {
-  formatPerformances,
+  estimate,
   formatAddresses,
   formatBalances,
   formatPairs,
+  formatPerformances,
   log,
   nonZeroBalances,
   setLogger,
-  toCAD,
-  toUSD,
+  toCADBalances,
   withHandledLoginErrors,
 } from '../utils';
 const yesno = require('yesno');
@@ -77,7 +77,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
     const [tickers, balances, usdPerCad] = await Promise.all([
       api.tickers(),
       api.balances(),
-      getUsdPerCad(),
+      fiat.getUsdPerCad(),
     ]);
     const nzBalances = nonZeroBalances(balances);
     const cryptoBalances = args.coins
@@ -89,9 +89,9 @@ cli.command('balances [coins...]', 'Display your current balances.')
         nzBalances,
       ) as any
       : nzBalances;
-    const cadBalances = toCAD(balances, tickers, usdPerCad) as any;
+    const cadBalances = toCADBalances(balances, tickers, usdPerCad) as any;
 
-    log(formatBalances(cryptoBalances, toCAD(cryptoBalances, tickers, usdPerCad)));
+    log(formatBalances(cryptoBalances, toCADBalances(cryptoBalances, tickers, usdPerCad)));
 
     callback();
   }));
@@ -293,20 +293,15 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD.')
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = ex(args.options.exchange);
     const currency = args.currency.toUpperCase() as string;
-    if (R.contains(currency, ['CAD', 'EUR'])) {
-      const rate = await getRate(currency, 'USD');
-      log(`1 ${currency} = ${rate} USD`);
-    } else {
-      const rate = await getUsdPerCad();
-      const tickers = await api.tickers();
-      const balances = {
-        [currency]: 1,
-      };
-      const usd = toUSD(balances, tickers)[currency.toUpperCase()];
-      const cad = usd / rate;
-      log(`1 ${currency} = ${usd.toFixed(5)} USD`);
-      log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
-    }
+    const [fiatTickers, cryptoTickers] = await Promise.all([
+      fiat.tickers(),
+      api.tickers(),
+    ]);
+    const tickers = R.merge(cryptoTickers, fiatTickers);
+    const usd = estimate(1, currency, 'USDT', tickers);
+    const cad = estimate(1, currency, 'CAD', tickers);
+    log(`1 ${currency} = ${usd.toFixed(5)} USD`);
+    log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
     callback();
   }));
 
