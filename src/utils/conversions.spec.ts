@@ -15,7 +15,41 @@ const ticker = (pair, last) => ({
   '24hrLow': last,
 });
 
+const conversion = (tradeType, currencyPair) => ({ tradeType, currencyPair });
+
 describe('Module: utils', () => {
+  describe('Unit: tradePath(fromAmount, fromCoin, toCoin, tickers)', () => {
+    it('should do nothing when going from A to A', () => {
+      const tickers = {};
+      expect(utils.tradePath('BTC', 'BTC', tickers)).to.eql([]);
+    });
+
+    it('should trade from A to B', () => {
+      const tickers = {
+        A_B: ticker('A_B', 0.5),
+      };
+      expect(utils.tradePath('A', 'B', tickers)).to.eql([conversion('buy', 'A_B')]);
+      expect(utils.tradePath('B', 'A', tickers)).to.eql([conversion('sell', 'A_B')]);
+    });
+
+    it('should trade from A to C via B', () => {
+      const tickers = {
+        A_B: ticker('A_B', 0.5),
+        B_C: ticker('B_C', 0.5),
+      };
+      expect(utils.tradePath('A', 'C', tickers)).to.eql([conversion('buy', 'A_B'), conversion('buy', 'B_C')]);
+      expect(utils.tradePath('C', 'A', tickers)).to.eql([conversion('sell', 'B_C'), conversion('sell', 'A_B')]);
+    });
+
+    it('should throw an error when no path between A & D exist', () => {
+      const tickers = {
+        A_B: ticker('A_B', 0.1),
+        B_C: ticker('B_C', 0.01),
+      };
+      expect(() => utils.tradePath('A', 'D', tickers)).to.throw(/Cannot convert A to D/);
+    });
+  });
+
   describe('Unit: estimate(fromAmount, fromCoin, toCoin, tickers)', () => {
     it('should estimate A to A', () => {
       const tickers = {};
