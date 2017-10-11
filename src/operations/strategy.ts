@@ -1,6 +1,7 @@
 import * as R from 'ramda';
 import trade, { isDryRunDefault } from './trade';
-import { sleep, log } from '../utils';
+import * as fiat from '../fiat';
+import { sleep, log, estimate } from '../utils';
 
 const BLACKLIST = [
   'DOGE',
@@ -60,6 +61,14 @@ export async function execute(
     log('\nThis is a dry run. These are not real trades.');
   }
 
+  const [fiatTickers, cryptoTickers] = await Promise.all([
+    fiat.tickers(),
+    api.tickers(),
+  ]);
+  const tickers = R.merge(cryptoTickers, fiatTickers);
+
+  log(`SPLITTING ${fromAmount} ${fromCoin} (approx ${estimate(fromAmount, fromCoin, 'CAD', tickers).toFixed(2)} CAD)`);
+
   const coinsToBuy = await getCoinsToBuy(strategy, api, fromCoin);
   const N = coinsToBuy.length;
   const fromAmountToBuyAsBTC = fromAmount * N / (N + 1);
@@ -103,7 +112,7 @@ export async function execute(
         isDryRun,
       }),
     ],
-  );
+  ) as [string, Promise<number>][];
 
   for (const coinAndAmountPromise of amounts) {
     const coin = coinAndAmountPromise[0];
@@ -113,7 +122,8 @@ export async function execute(
       log(`FAILURE: COULD NOT BUY ${coin} for ${btcValueOfCoin} BTC`);
       unable.push(coin);
     } else {
-      log(`SUCCESS: BOUGHT ${amount} ${coin} for ${btcValueOfCoin} BTC`);
+      const estimatedCadValue = estimate(amount, coin, 'CAD', tickers);
+      log(`SUCCESS: BOUGHT ${amount} ${coin} for ${btcValueOfCoin} BTC (approx ${estimatedCadValue.toFixed(2)} CAD)`);
     }
   }
 
