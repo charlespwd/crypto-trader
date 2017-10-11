@@ -1,7 +1,8 @@
 import {
-  path,
   filter,
   mapObjIndexed,
+  merge,
+  path,
   toPairs,
 } from 'ramda';
 import * as bfs from './bfs';
@@ -15,14 +16,12 @@ const toBTC = (value: number, currency: string, tickers: Tickers) => {
 };
 
 export const btcToUSD = (value: number, tickers: Tickers) => {
-  return value * tickers.USDT_BTC.last;
+  return estimate(value, 'BTC', 'USDT', tickers);
 };
 
 export const toUSD = (balances: Balances, tickers: Tickers): Balances => {
-  const convert = (value, currency) => {
-    const btc = toBTC(value, currency, tickers);
-    return btcToUSD(btc, tickers);
-  };
+  const graph = tickersToGraph(tickers);
+  const convert = (value, currency) => estimateFromGraph(value, currency, 'USDT', graph);
   return mapObjIndexed(
     convert,
     nonZeroBalances(balances),
@@ -30,10 +29,12 @@ export const toUSD = (balances: Balances, tickers: Tickers): Balances => {
 };
 
 export const toCAD = (balances: Balances, tickers: Tickers, usdPerCad: number) => {
-  const convert = (value, currency) => {
-    const btc = toBTC(value, currency, tickers);
-    return btcToUSD(btc, tickers) / usdPerCad;
-  };
+  const graph = tickersToGraph(merge(tickers, {
+    USDT_CAD: {
+      last: usdPerCad,
+    },
+  }));
+  const convert = (value, currency) => estimateFromGraph(value, currency, 'CAD', graph);
   return mapObjIndexed(convert, nonZeroBalances(balances));
 };
 
@@ -63,6 +64,11 @@ export function tickersToGraph(tickers: Tickers): bfs.Graph<RateFromAtoB> {
 
 export function estimate(fromAmount: number, fromCoin: string, toCoin: string, tickers: Tickers): number {
   const graph = tickersToGraph(tickers);
+  return estimateFromGraph(fromAmount, fromCoin, toCoin, graph);
+}
+
+function estimateFromGraph(fromAmount: number, fromCoin: string, toCoin: string, graph: bfs.Graph<RateFromAtoB>): number {
+  if (fromCoin === toCoin) return fromAmount;
   const rates = bfs.bfs(graph, fromCoin, toCoin);
   if (!rates) throw new Error(`Cannot convert ${fromCoin} to ${toCoin}.`);
   const rate = rates.reduce((a, b) => a * b, 1);

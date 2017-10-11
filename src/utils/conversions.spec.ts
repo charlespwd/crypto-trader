@@ -17,6 +17,11 @@ const ticker = (pair, last) => ({
 
 describe('Module: utils', () => {
   describe('Unit: estimate(fromAmount, fromCoin, toCoin, tickers)', () => {
+    it('should estimate A to A', () => {
+      const tickers = {};
+      expect(utils.estimate(0.5, 'A', 'A', tickers)).to.equal(0.5);
+    });
+
     it('should estimate from A to B and vice versa', () => {
       const tickers = {
         A_B: ticker('A_B', 0.5),
@@ -70,6 +75,6 @@ describe('Module: utils', () => {
         LTC: 0.5 * 10,
         USDT: 1,
       });
-    }); 
+    });
   });
 });
