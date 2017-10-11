@@ -2,7 +2,7 @@
   "extends": "tslint-config-airbnb",
   "rules": {
     "align": false,
-    "import-name": false,
+    "no-unused-variable": true,
     "max-line-length": false,
     "object-shorthand-properties-first": false,
     "no-boolean-literal-compare": false,
