@@ -3,6 +3,7 @@ import '../types/operations';
 import * as Table from 'cli-table';
 import * as R from 'ramda';
 import { btcToUSD } from './conversions';
+import * as colors from 'colors/safe';
 const {
   F,
   contains,
@@ -25,7 +26,6 @@ const {
   startsWith,
   any,
 } = R;
-
 interface Balances {
   [currency: string]: string;
 }
@@ -151,4 +151,19 @@ export function formatPerformances(
   }
 
   return table.toString();
+}
+
+export function formatTradeResults(tradeResults: Operations.TradeResults) {
+  const successSummary = tradeResults.successfulTrades
+    .map(x => `${x.fromAmount.toFixed(8)} ${x.fromCoin} => ${x.toAmount.toFixed(8)} ${x.toCoin}`)
+    .join('\n');
+  const failedSummary = tradeResults.failedTrades
+    .map(x => `${x.tradeType} ${x.fromAmount} on ${x.currencyPair} failed. Reason: ${x.reason.message}`)
+    .join('\n');
+  return (
+`${colors.green('SUCCESS')}:
+${successSummary}
+${colors.red('FAILED')}:
+${failedSummary || 'Nothing.'}`
+  );
 }

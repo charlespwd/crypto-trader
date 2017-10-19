@@ -31,9 +31,9 @@ export const withLoginFactory = (state: LoginState) => fn => (...args) => {
   return fn(...args);
 };
 
-export const withHandledLoginErrors = fn => async (...args) => {
+export const withHandledLoginErrors = fn => async function wrappedWithLogin(...args) {
   try {
-    await fn(...args);
+    await fn.apply(this, args);
   } catch (e) {
     if (e.type === 'LoginError') {
       log(e.message);

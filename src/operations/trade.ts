@@ -1,5 +1,6 @@
 import * as R from 'ramda';
 import { sleep, log, enqueue } from '../utils';
+import { IS_DRY_RUN_DEFAULT } from '../constants';
 
 // Some definitons, for a currencyPair BTC_ETH
 // amount = (price in ETH)
@@ -15,19 +16,19 @@ const isBuyOrder = (fromCoin, toCoin, currencyPair) => {
   }
 };
 
-function getRate(api: Api, isBuyOrder: boolean, currencyPair: string, tickers: Tickers): number {
+export function getRate(api: Api, isBuyOrder: boolean, currencyPair: string, tickers: Tickers): number {
   return isBuyOrder
     ? api.buyRate(currencyPair, tickers)
     : api.sellRate(currencyPair, tickers);
 }
 
-function getAmount(isBuyOrder: boolean, amount: number, rate: number): number {
+export function getAmount(isBuyOrder: boolean, amount: number, rate: number): number {
   return isBuyOrder
     ? amount / rate
     : amount;
 }
 
-function getTotal(isBuyOrder: boolean, amount: number, rate: number): number {
+export function getTotal(isBuyOrder: boolean, amount: number, rate: number): number {
   return isBuyOrder
     ? amount
     : amount * rate;
@@ -47,11 +48,6 @@ interface MakeTradeOptions {
   isDryRun?: boolean;
 }
 
-export const isDryRunDefault = process.env.NODE_ENV === 'devel';
-if (isDryRunDefault) {
-  log('Running with --dry-run by default');
-}
-
 export default async function trade({
   api,
   fromAmount,
@@ -59,7 +55,7 @@ export default async function trade({
   toCoin,
   currencyPair,
   retryCount = 0,
-  isDryRun = isDryRunDefault,
+  isDryRun = IS_DRY_RUN_DEFAULT,
 }: MakeTradeOptions): Promise<number> {
   if (toCoin === fromCoin) return fromAmount;
   const isBuying = isBuyOrder(fromCoin, toCoin, currencyPair);

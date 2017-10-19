@@ -1,8 +1,9 @@
 import * as EventEmitter from 'events';
 import * as R from 'ramda';
-import trade, { isDryRunDefault } from './trade';
+import trade from './trade';
 import * as fiat from '../fiat';
 import { log, estimate } from '../utils';
+import { IS_DRY_RUN_DEFAULT } from '../constants';
 
 export const STRATEGY_EVENTS = {
   START: 'start',
@@ -65,7 +66,7 @@ export function strategyFactory(emitter: EventEmitter, trade) {
     fromAmount: number,
     strategy: Strategy,
     fromCoin = 'ETH',
-    isDryRun = isDryRunDefault,
+    isDryRun = IS_DRY_RUN_DEFAULT,
   ) {
     if (isDryRun) {
       log('\nThis is a dry run. These are not real trades.');

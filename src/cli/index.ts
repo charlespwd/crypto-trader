@@ -2,8 +2,8 @@ import * as R from 'ramda';
 import * as strategy from '../operations/strategy';
 import trade from '../operations/trade';
 import summary from '../operations/summary';
+import { IS_DRY_RUN_DEFAULT } from '../constants';
 import { performanceByExchange } from '../operations/performance';
-import { poloniex, coinbase, bittrex } from '../api';
 import * as fiat from '../fiat';
 import * as auth from '../auth';
 import {
@@ -18,6 +18,8 @@ import {
   toCADBalances,
   withHandledLoginErrors,
 } from '../utils';
+import fanout from './fanout';
+import exchange from './exchange';
 const yesno = require('yesno');
 const Table = require('cli-table');
 const prompt = require('prompt');
@@ -31,30 +33,14 @@ const supportedExchanges = [
   'bittrex',
   'poloniex',
   'coinbase',
+  'mockapi',
 ];
 
 const exchangeOptDesc = 'The name of the exchange to query. (default = poloniex)';
 
-function ex(exchange: string = 'poloniex'): Api {
-  switch (exchange) {
-    case 'pl':
-    case 'pn':
-    case 'polo':
-    case 'poloniex': return poloniex;
-
-    case 'cb':
-    case 'coinbase': return coinbase;
-
-    case 'br':
-    case 'bittrex': return bittrex;
-
-    default: throw new Error('Unsupported exchange');
-  }
-}
-
 cli.command('login <exchange>', 'Setup api keys and secrets for an exchange.')
   .action((args: any, callback: Function) => {
-    const api = ex(args.exchange);
+    const api = exchange(args.exchange);
 
     prompt.start();
     prompt.message = '';
@@ -73,7 +59,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
   .alias('b')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = ex(args.options.exchange);
+    const api = exchange(args.options.exchange);
     const [tickers, balances, usdPerCad] = await Promise.all([
       api.tickers(),
       api.balances(),
@@ -96,13 +82,17 @@ cli.command('balances [coins...]', 'Display your current balances.')
     callback();
   }));
 
+cli.command('fanout <amount> <fromCoin> <coinsAndRatios...>')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .action(withHandledLoginErrors(fanout));
+
 cli.command('split <amount> <fromCoin> <coins...>', 'Split your coin into coins.')
   .option('-d, --dry-run', `Don't actually perform the trade, make a dry run to see what it would look like.`)
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
-      api: ex(args.options.exchange),
+      api: exchange(args.options.exchange),
       fromCoin: args.fromCoin.toUpperCase(),
       strategy: strategy.namedListStrategy(args.coins as string[]),
       isDryRun: args.options['dry-run'],
@@ -132,7 +122,7 @@ cli.command('diversify <amount> <fromCoin>', 'Split your coin into n top coins b
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const params = {
       amount: parseFloat(args.amount),
-      api: ex(args.options.exchange),
+      api: exchange(args.options.exchange),
       fromCoin: args.fromCoin.toUpperCase(),
       isDryRun: args.options['dry-run'],
       strategy: strategy.topByVolumeStrategy(
@@ -161,7 +151,7 @@ cli.command('trade <amount> <fromCoin> <toCoin> <currencyPair>', 'Trade fromCoin
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .option('-d, --dry-run', `Don't actually perform the trade, make a dry run to see what it would look like.`)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = ex(args.options.exchange);
+    const api = exchange(args.options.exchange);
     const params = {
       exchange: api,
       amount: parseFloat(args.amount),
@@ -282,7 +272,7 @@ cli.command('summary', 'Displays your portfolio summary.')
 cli.command('pairs [currencies...]', 'List all the currency pairs on the exchange.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = ex(args.options.exchange);
+    const api = exchange(args.options.exchange);
     const tickers = await api.tickers();
     log(formatPairs(tickers, args.currencies));
     callback();
@@ -291,7 +281,7 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
 cli.command('quote [currency]', 'Get a quote for a currency in USD.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = ex(args.options.exchange);
+    const api = exchange(args.options.exchange);
     const currency = args.currency.toUpperCase() as string;
     const [fiatTickers, cryptoTickers] = await Promise.all([
       fiat.tickers(),
@@ -309,7 +299,7 @@ cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addres
   .alias('address')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = ex(args.options.exchange);
+    const api = exchange(args.options.exchange);
     const currency = (args.currency || '').toUpperCase() as string;
     const addresses = await api.addresses();
     if (currency) {
@@ -326,7 +316,7 @@ cli.command('performance [currencies...]', 'Get a list of performances by exchan
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .option('-s, --sort-by [method]', 'The column to sort by', ['profit', 'usd', 'percent'])
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = ex(args.options.exchange);
+    const api = exchange(args.options.exchange);
     const [tickers, trades] = await Promise.all([
       api.tickers(),
       api.trades(),
@@ -342,6 +332,10 @@ cli.command('performance [currencies...]', 'Get a list of performances by exchan
 
 
 export function run() {
+  if (IS_DRY_RUN_DEFAULT) {
+    log('Running with --dry-run by default');
+  }
+
   setLogger(cli.log.bind(cli));
   cli.delimiter('crypto-trader $ ')
     .history('crypto-trader-ching-ching')

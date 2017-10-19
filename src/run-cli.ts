@@ -1,7 +1,7 @@
 import { run } from './cli';
+import { forEachObjIndexed } from 'ramda';
 import * as auth from './auth';
 import * as apis from './api';
-import { forEachObjIndexed } from 'ramda';
 
 const prompt = require('prompt');
 const schema = {
