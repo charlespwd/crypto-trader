@@ -25,12 +25,12 @@ export interface DiversificationSpec {
 async function withRetry(fn, ms = 250, n = 5) {
   try {
     return await fn();
-  } catch (e) {
+  } catch (err) {
     await sleep(ms);
     if (n > 0) {
       return withRetry(fn, ms, n - 1);
     } else {
-      throw e;
+      throw err;
     }
   }
 }
@@ -52,6 +52,7 @@ function extractFromAndTo(tradeType, currencyPair) {
 
 export class DiversificationStrategy extends EventEmitter {
   static EVENTS = {
+    TRADE: 'trade',
     TRADE_SUCCESS: 'trade:success',
     TRADE_FAILURE: 'trade:failure',
   };
@@ -83,17 +84,23 @@ export class DiversificationStrategy extends EventEmitter {
   }
 
   private async makeTrades(fromAmount, fromCoin, ratio, toCoin): Promise<Operations.TradeResult> {
+    this.emit(DiversificationStrategy.EVENTS.TRADE, {
+      progress: 0,
+      fromAmount: fromAmount * ratio,
+      fromCoin,
+      destinationCoin: toCoin,
+    });
+
     const tickers = await this.api.tickers();
     const path = tradePath(fromCoin, toCoin, tickers);
     let amount = fromAmount * ratio;
-    let i = 1;
-    for (const { currencyPair, tradeType } of path) {
+    for (const [i, { currencyPair, tradeType }] of path.entries()) {
       const fromAndTo = extractFromAndTo(tradeType, currencyPair);
       try {
         const toAmount = await this.trade(amount, currencyPair, tradeType, tickers);
 
         this.emit(DiversificationStrategy.EVENTS.TRADE_SUCCESS, {
-          progress: i / path.length,
+          progress: (i + 1) / path.length,
           fromCoin: fromAndTo.fromCoin,
           fromAmount: amount,
           destinationCoin: toCoin,
@@ -102,14 +109,13 @@ export class DiversificationStrategy extends EventEmitter {
         });
 
         amount = toAmount;
-        i = i + 1;
-      } catch (e) {
+      } catch (reason) {
         this.emit(DiversificationStrategy.EVENTS.TRADE_FAILURE, {
           destinationCoin: toCoin,
           fromAmount: amount,
           fromCoin: fromAndTo.fromCoin,
-          progress: i / path.length,
-          reason: e,
+          progress: (i + 1) / path.length,
+          reason,
           toCoin: fromAndTo.toCoin,
         });
 
@@ -117,7 +123,7 @@ export class DiversificationStrategy extends EventEmitter {
           status: 'failure',
           currencyPair,
           fromAmount: amount,
-          reason: e,
+          reason,
           toCoin,
           tradeType,
         };

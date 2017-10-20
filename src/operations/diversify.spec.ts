@@ -289,4 +289,40 @@ describe('Module: diversify', () => {
       });
     });
   });
+
+  describe('Unit: Trade Start Emission', () => {
+    it('should declare what it is about to do before doing it', async () => {
+      const fromAmount = 1;
+      const ratio = 0.33;
+      diversificationSpecs = [
+        { toCoin: 'XMR', ratio },
+        { toCoin: 'BTC', ratio },
+        { toCoin: 'USDT', ratio },
+      ];
+
+      const spy = sinon.spy();
+      strategy.on(DiversificationStrategy.EVENTS.TRADE, spy);
+
+      await strategy.execute(fromAmount, 'LTC', diversificationSpecs);
+
+      expect(spy).to.have.been.calledWith({
+        progress: 0,
+        destinationCoin: 'USDT',
+        fromAmount: fromAmount * ratio,
+        fromCoin: 'LTC',
+      });
+      expect(spy).to.have.been.calledWith({
+        progress: 0,
+        destinationCoin: 'XMR',
+        fromAmount: fromAmount * ratio,
+        fromCoin: 'LTC',
+      });
+      expect(spy).to.have.been.calledWith({
+        progress: 0,
+        destinationCoin: 'BTC',
+        fromAmount: fromAmount * ratio,
+        fromCoin: 'LTC',
+      });
+    });
+  });
 });
