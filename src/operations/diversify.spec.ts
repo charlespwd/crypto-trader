@@ -199,4 +199,94 @@ describe('Module: diversify', () => {
     expect(successfulTrades).to.have.lengthOf(1);
     expect(failedTrades[0].reason.message).to.equal('NO CAN DO BABYDOLL');
   });
+
+  describe('Unit: Trade Success Emission', () => {
+    it('should emit trade success progress', async () => {
+      const fromAmount = 1;
+      const ratio = 0.5;
+      diversificationSpecs = [
+        { toCoin: 'BTC', ratio },
+      ];
+
+      const spy = sinon.spy();
+      strategy.on(DiversificationStrategy.EVENTS.TRADE_SUCCESS, spy);
+
+      await strategy.execute(fromAmount, 'LTC', diversificationSpecs);
+
+      const rate = tickers.BTC_LTC.last;
+      expect(spy).to.have.been.calledWith({
+        destinationCoin: 'BTC',
+        fromAmount: fromAmount * ratio,
+        fromCoin: 'LTC',
+        progress: 1,
+        toAmount: rate * ratio,
+        toCoin: 'BTC',
+      });
+    });
+
+    it('should emit trade success progress twice on multi trade', async () => {
+      const fromAmount = 1;
+      const ratio = 0.5;
+      diversificationSpecs = [
+        { toCoin: 'USDT', ratio },
+      ];
+
+      const spy = sinon.spy();
+      strategy.on(DiversificationStrategy.EVENTS.TRADE_SUCCESS, spy);
+
+      await strategy.execute(fromAmount, 'LTC', diversificationSpecs);
+
+      const rate = tickers.BTC_LTC.last;
+      const usdRate = tickers.USDT_BTC.last;
+      expect(spy.firstCall.args[0]).to.eql({
+        destinationCoin: 'USDT',
+        fromAmount: fromAmount * ratio,
+        fromCoin: 'LTC',
+        progress: 0.5,
+        toAmount: rate * ratio,
+        toCoin: 'BTC',
+      });
+
+      expect(spy.secondCall.args[0]).to.eql({
+        destinationCoin: 'USDT',
+        fromAmount: rate * ratio,
+        fromCoin: 'BTC',
+        progress: 1,
+        toAmount: usdRate * rate * ratio,
+        toCoin: 'USDT',
+      });
+    });
+  });
+
+  describe('Unit: Trade Failure Emission', () => {
+    it('should emit trade failure', async () => {
+      const fromAmount = 1;
+      const ratio = 0.5;
+      diversificationSpecs = [
+        { toCoin: 'USDT', ratio },
+      ];
+
+      const error = new Error('NO CAN DO BABYDOLL');
+      const spy = sinon.spy();
+      sandbox.stub(api, 'sell')
+        .returns(1)
+        .withArgs(sinon.match.has('currencyPair', 'BTC_LTC'))
+        .throws(error);
+
+      strategy.on(DiversificationStrategy.EVENTS.TRADE_FAILURE, spy);
+
+      await strategy.execute(fromAmount, 'LTC', diversificationSpecs);
+
+      const rate = tickers.BTC_LTC.last;
+      const usdRate = tickers.USDT_BTC.last;
+      expect(spy).to.have.been.calledWith({
+        destinationCoin: 'USDT',
+        fromAmount: fromAmount * ratio,
+        fromCoin: 'LTC',
+        progress: 0.5,
+        reason: error,
+        toCoin: 'BTC',
+      });
+    });
+  });
 });

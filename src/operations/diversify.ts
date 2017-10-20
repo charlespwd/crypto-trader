@@ -35,6 +35,21 @@ async function withRetry(fn, ms = 250, n = 5) {
   }
 }
 
+function extractFromAndTo(tradeType, currencyPair) {
+  const parts = currencyPair.split('_');
+  if (tradeType === 'buy') {
+    return {
+      fromCoin: parts[0],
+      toCoin: parts[1],
+    };
+  } else {
+    return {
+      fromCoin: parts[1],
+      toCoin: parts[0],
+    };
+  }
+}
+
 export class DiversificationStrategy extends EventEmitter {
   static EVENTS = {
     TRADE_SUCCESS: 'trade:success',
@@ -71,17 +86,40 @@ export class DiversificationStrategy extends EventEmitter {
     const tickers = await this.api.tickers();
     const path = tradePath(fromCoin, toCoin, tickers);
     let amount = fromAmount * ratio;
+    let i = 1;
     for (const { currencyPair, tradeType } of path) {
+      const fromAndTo = extractFromAndTo(tradeType, currencyPair);
       try {
-        amount = await this.trade(amount, currencyPair, tradeType, tickers);
+        const toAmount = await this.trade(amount, currencyPair, tradeType, tickers);
+
+        this.emit(DiversificationStrategy.EVENTS.TRADE_SUCCESS, {
+          progress: i / path.length,
+          fromCoin: fromAndTo.fromCoin,
+          fromAmount: amount,
+          destinationCoin: toCoin,
+          toCoin: fromAndTo.toCoin,
+          toAmount,
+        });
+
+        amount = toAmount;
+        i = i + 1;
       } catch (e) {
+        this.emit(DiversificationStrategy.EVENTS.TRADE_FAILURE, {
+          destinationCoin: toCoin,
+          fromAmount: amount,
+          fromCoin: fromAndTo.fromCoin,
+          progress: i / path.length,
+          reason: e,
+          toCoin: fromAndTo.toCoin,
+        });
+
         return {
           status: 'failure',
-          toCoin,
-          fromAmount: amount,
           currencyPair,
-          tradeType,
+          fromAmount: amount,
           reason: e,
+          toCoin,
+          tradeType,
         };
       }
     }
