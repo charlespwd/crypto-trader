@@ -153,17 +153,28 @@ export function formatPerformances(
   return table.toString();
 }
 
+const pp = x => x.toFixed(8);
+const aToB = x => `${pp(x.fromAmount)} ${x.fromCoin} => ${pp(x.toAmount)} ${x.toCoin}`;
+const successMsg = colors.green('SUCCESS');
+const failureMsg = colors.red('FAILURE');
+
 export function formatTradeResults(tradeResults: Operations.TradeResults) {
-  const successSummary = tradeResults.successfulTrades
-    .map(x => `${x.fromAmount.toFixed(8)} ${x.fromCoin} => ${x.toAmount.toFixed(8)} ${x.toCoin}`)
-    .join('\n');
+  const successSummary = tradeResults.successfulTrades.map(aToB).join('\n');
   const failedSummary = tradeResults.failedTrades
     .map(x => `${x.tradeType} ${x.fromAmount} on ${x.currencyPair} failed. Reason: ${x.reason.message}`)
     .join('\n');
   return (
-`${colors.green('SUCCESS')}:
+`${successMsg}:
 ${successSummary}
-${colors.red('FAILED')}:
+${failureMsg}:
 ${failedSummary || 'Nothing.'}`
   );
+}
+
+export function formatTradeSuccess(data) {
+  return `${successMsg}: (Dest: ${data.destinationCoin}) Progress: ${(data.progress * 100).toFixed(0)}% Data: ${aToB(data)}`;
+}
+
+export function formatTradeFailure(data) {
+  return `${failureMsg}: (Dest: ${data.destinationCoin}) Reason: ${data.reason.message}`;
 }

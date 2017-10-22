@@ -1,7 +1,12 @@
 import * as R from 'ramda';
 import { DiversificationStrategy, DiversificationSpec } from '../operations/diversify';
 import exchange from './exchange';
-import { log, formatTradeResults } from '../utils';
+import {
+  log,
+  formatTradeResults,
+  formatTradeSuccess,
+  formatTradeFailure,
+} from '../utils';
 import * as questions from './questions';
 
 function toSpecs(coinsAndRatios): DiversificationSpec[] {
@@ -59,6 +64,14 @@ export default async function fanout(args, callback) {
 
   const strategy = new DiversificationStrategy({
     api: params.api,
+  });
+
+  strategy.on(DiversificationStrategy.EVENTS.TRADE_SUCCESS, (data) => {
+    log(formatTradeSuccess(data));
+  });
+
+  strategy.on(DiversificationStrategy.EVENTS.TRADE_FAILURE, (data) => {
+    log(formatTradeFailure(data));
   });
 
   const results = await strategy.execute(
