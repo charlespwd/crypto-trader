@@ -230,8 +230,8 @@ async function trades(): Promise<TradeHistory> {
   return fromPoloniexTradeHistoryToTradeHistory(result);
 }
 
-const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid;
-const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk;
+const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid / 1.01;
+const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk * 1.01;
 const api: Api = {
   name: 'poloniex',
   init,

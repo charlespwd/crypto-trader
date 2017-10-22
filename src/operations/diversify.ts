@@ -10,6 +10,7 @@ import {
 import {
   tradePath,
   sleep,
+  extractFromAndTo,
 } from '../utils';
 import {
   getRate,
@@ -32,21 +33,6 @@ async function withRetry(fn, ms = 250, n = 5) {
     } else {
       throw err;
     }
-  }
-}
-
-function extractFromAndTo(tradeType, currencyPair) {
-  const parts = currencyPair.split('_');
-  if (tradeType === 'buy') {
-    return {
-      fromCoin: parts[0],
-      toCoin: parts[1],
-    };
-  } else {
-    return {
-      fromCoin: parts[1],
-      toCoin: parts[0],
-    };
   }
 }
 

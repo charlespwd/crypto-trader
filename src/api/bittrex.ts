@@ -2,7 +2,7 @@ import * as request from 'request-promise-native';
 import * as qs from 'query-string';
 import * as crypto from 'crypto';
 import * as auth from '../auth';
-import { timeout, log, withLoginFactory } from '../utils';
+import { timeout, log, withLoginFactory, sleep } from '../utils';
 import {
   map,
   merge,
@@ -17,6 +17,8 @@ import {
 } from 'ramda';
 
 const BASE_URL = 'https://bittrex.com/api/v1.1/';
+const RETRY_COUNT_MAX = 5;
+const RETRY_SLEEP_MS = 100;
 
 const state = {
   exchangeName: 'bittrex',
@@ -206,62 +208,76 @@ interface BittrexOrder {
   ConditionTarget: boolean;
 }
 
-async function buy(options: TradeOptions): Promise<number> {
-  const result: BittrexTradeResult = await makeRequest({
-    url: requestUrl('market/buylimit', {
-      quantity: options.amount,
-      market: options.currencyPair.replace('_', '-'),
-      rate: options.rate,
-    }),
-  });
+type AmountType = 'Quantity' | 'Price';
 
-  const orderId = result.uuid;
-
-  const orderStatus: BittrexOrder = await makeRequest({
+function getOrderStatus(orderId) {
+  return makeRequest({
     url: requestUrl('account/getorder', {
       uuid: orderId,
     }),
   });
-
-  if (orderStatus.IsOpen) {
-    log(`Buy order for ${JSON.stringify(options)} is still open!`);
-  }
-
-  return orderStatus.Quantity;
 }
 
-async function sell(options: TradeOptions): Promise<number> {
-  const result: BittrexTradeResult = await makeRequest({
-    url: requestUrl('market/selllimit', {
-      quantity: options.amount,
-      market: options.currencyPair.replace('_', '-'),
-      rate: options.rate,
-    }),
-  });
-
-  const orderId = result.uuid;
-
-  const orderStatus: BittrexOrder = await makeRequest({
-    url: requestUrl('account/getorder', {
-      uuid: orderId,
-    }),
-  });
-
-  if (orderStatus.IsOpen) {
-    log(`Sell order for ${JSON.stringify(options)} is still open!`);
+async function cancelOrder(orderId) {
+  try {
+    await makeRequest({
+      url: requestUrl('market/cancel', {
+        uuid: orderId,
+      }),
+    });
+    return true;
+  } catch (reason) {
+    throw reason;
   }
-
-  return orderStatus.Price;
 }
+
+function makeTradeFunction(tradeType: 'buy' | 'sell', command: string, returnProperty: AmountType) {
+  return async function tradeFn(options: TradeOptions): Promise<number> {
+    const result: BittrexTradeResult = await makeRequest({
+      url: requestUrl(command, {
+        quantity: options.amount,
+        market: options.currencyPair.replace('_', '-'),
+        rate: options.rate,
+      }),
+    });
+
+    const orderId = result.uuid;
+    const [baseCoin, coin] = options.currencyPair.split('_');
+
+    let n = 1;
+    let orderStatus: BittrexOrder = await getOrderStatus(orderId);
+    const tradeDescription = `${tradeType} order for ${options.amount} ${coin} at ${options.rate} on ${options.currencyPair}`;
+    while (orderStatus.IsOpen && n <= RETRY_COUNT_MAX) {
+      log(`${tradeDescription} still open! Attempt # ${n}`);
+      await sleep(RETRY_SLEEP_MS);
+      orderStatus = await getOrderStatus(orderId);
+      n = n + 1;
+    }
+
+    if (n > RETRY_COUNT_MAX) {
+      log(`${tradeDescription} Reason: Retry count max reached.`);
+      await cancelOrder(orderId);
+      log(`${tradeDescription} cancelled.`);
+      throw new Error('Retry count max reached');
+    } else if (n > 1 && orderStatus.IsOpen) {
+      log(`${tradeDescription} SUCCEEDED!`);
+    }
+
+    return orderStatus[returnProperty];
+  };
+}
+
+export const buy = makeTradeFunction('buy', 'market/buylimit', 'Quantity');
+export const sell = makeTradeFunction('sell', 'market/selllimit', 'Price');
 
 function buyRate(currencyPair: string, tickers: Tickers): number {
-  // buying 0.25% higher than lowest ask just to be sure
-  return tickers[currencyPair].lowestAsk * (1 + 0.0025);
+  // buying 1% higher than lowest ask just to be sure
+  return tickers[currencyPair].lowestAsk * 1.01;
 }
 
 function sellRate(currencyPair: string, tickers: Tickers): number {
-  // selling 0.25% lower than lowest bid just to be sure
-  return tickers[currencyPair].highestBid * (1 - 0.0025);
+  // selling 1% lower than lowest bid just to be sure
+  return tickers[currencyPair].highestBid / 1.01;
 }
 
 type BittrexTradeType = 'LIMIT_BUY' | 'LIMIT_SELL';

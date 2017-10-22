@@ -6,17 +6,48 @@ import {
   path,
   toPairs,
 } from 'ramda';
+import { log } from './log';
 import * as bfs from './bfs';
 
 export const nonZeroBalances = filter(x => x > 0);
+
+export function extractFromAndTo(tradeType, currencyPair) {
+  const parts = currencyPair.split('_');
+  if (tradeType === 'buy') {
+    return {
+      fromCoin: parts[0],
+      toCoin: parts[1],
+    };
+  } else {
+    return {
+      fromCoin: parts[1],
+      toCoin: parts[0],
+    };
+  }
+}
 
 export const btcToUSD = (value: number, tickers: Tickers) => {
   return estimate(value, 'BTC', 'USDT', tickers);
 };
 
+function makeConvert(toCoin, graph) {
+  return function convert(value, currency) {
+    try {
+      return estimateFromGraph(value, currency, toCoin, graph);
+    } catch (e) {
+      if (/Cannot convert/.test(e.message)) {
+        log(e.message);
+        return 0;
+      } else {
+        throw e;
+      }
+    }
+  };
+}
+
 export const toUSDBalances = (balances: Balances, tickers: Tickers): Balances => {
   const graph = tickersToRateGraph(tickers);
-  const convert = (value, currency) => estimateFromGraph(value, currency, 'USDT', graph);
+  const convert = makeConvert('USDT', graph);
   return mapObjIndexed(
     convert,
     nonZeroBalances(balances),
@@ -29,7 +60,7 @@ export const toCADBalances = (balances: Balances, tickers: Tickers, usdPerCad: n
       last: usdPerCad,
     },
   }));
-  const convert = (value, currency) => estimateFromGraph(value, currency, 'CAD', graph);
+  const convert = makeConvert('CAD', graph);
   return mapObjIndexed(convert, nonZeroBalances(balances));
 };
 

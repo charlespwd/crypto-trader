@@ -281,7 +281,7 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
 cli.command('quote [currency]', 'Get a quote for a currency in USD.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = exchange(args.options.exchange);
+    const api = exchange(args.options.exchange || 'bittrex');
     const currency = args.currency.toUpperCase() as string;
     const [fiatTickers, cryptoTickers] = await Promise.all([
       fiat.tickers(),
@@ -297,6 +297,7 @@ cli.command('quote [currency]', 'Get a quote for a currency in USD.')
 
 cli.command('addresses [currency]', 'Get a list of cryptocurrency deposit addresses from an exchange.')
   .alias('address')
+  .alias('a')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = exchange(args.options.exchange);
