@@ -32,8 +32,8 @@ interface Balances {
 
 export function formatBalances(balances: Object, cadBalances: Object) {
   const table = new Table({
-    head: ['Currency', 'Value', 'CAD'],
-    colAligns: ['left', 'right', 'right'],
+    head: ['Currency', 'Value', 'CAD', '%'],
+    colAligns: ['left', 'right', 'right', 'right'],
   });
 
   const pairs = pipe(
@@ -44,11 +44,18 @@ export function formatBalances(balances: Object, cadBalances: Object) {
     ) as any),
   )(balances);
 
+  const total = sum(valuesIn(cadBalances));
   for (const [currency, amount] of pairs as any) {
-    table.push([currency, `${amount} ${currency}`, `${cadBalances[currency].toFixed(2) || '??'} CAD`]);
+    const cadAmount = cadBalances[currency];
+    table.push([
+      currency,
+      `${amount} ${currency}`,
+      `${cadAmount.toFixed(2) || '??'} CAD`,
+      `${(cadAmount / total * 100).toFixed(2)}%`,
+    ]);
   }
 
-  table.push(['Total', '-', sum(valuesIn(cadBalances)).toFixed(2) + ' CAD']);
+  table.push(['Total', '-', total.toFixed(2) + ' CAD', '100.00%']);
 
   return table.toString();
 }
@@ -163,12 +170,15 @@ export function formatTradeResults(tradeResults: Operations.TradeResults) {
   const failedSummary = tradeResults.failedTrades
     .map(x => `${x.tradeType} ${x.fromAmount} on ${x.currencyPair} failed. Reason: ${x.reason.message}`)
     .join('\n');
-  return (
+  const successMessage = successSummary && (
 `${successMsg}:
-${successSummary}
-${failureMsg}:
-${failedSummary || 'Nothing.'}`
+${successSummary}`
   );
+  const failedMessage = failedSummary && (
+`${failureMsg}:
+${failedSummary}`
+  );
+  return [successMessage, failedMessage].filter(x => !!x).join('\n');
 }
 
 export function formatTradeSuccess(data) {
