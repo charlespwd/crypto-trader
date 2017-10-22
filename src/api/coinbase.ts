@@ -72,17 +72,17 @@ async function totalSpent(): Promise<number> {
 }
 
 async function buy(options: TradeOptions): Promise<number> {
-  throw new Error('Not implemented');
+  throw new Error('Buy not implemented');
 
   // getAccount(await accounts)
 }
 
 async function sell(options: TradeOptions): Promise<number> {
-  throw new Error('Not implemented');
+  throw new Error('Sell not implemented');
 }
 
 async function tickers(): Promise<Tickers> {
-  throw new Error('Not implemented');
+  throw new Error('Tickers not implemented');
 }
 
 interface CoinbaseApi extends Api {

@@ -19,6 +19,7 @@ import {
   withHandledLoginErrors,
 } from '../utils';
 import fanout from './fanout';
+import balances from './balances';
 import exchange from './exchange';
 const yesno = require('yesno');
 const Table = require('cli-table');
@@ -58,29 +59,7 @@ cli.command('balances [coins...]', 'Display your current balances.')
   .alias('balance')
   .alias('b')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
-  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
-    const api = exchange(args.options.exchange);
-    const [tickers, balances, usdPerCad] = await Promise.all([
-      api.tickers(),
-      api.balances(),
-      fiat.getUsdPerCad(),
-    ]);
-    const nzBalances = nonZeroBalances(balances);
-    const cryptoBalances = args.coins
-      ? R.pick(
-        R.map(
-          R.toUpper,
-          args.coins,
-        ) as string[],
-        nzBalances,
-      ) as any
-      : nzBalances;
-    const cadBalances = toCADBalances(balances, tickers, usdPerCad) as any;
-
-    log(formatBalances(cryptoBalances, toCADBalances(cryptoBalances, tickers, usdPerCad)));
-
-    callback();
-  }));
+  .action(withHandledLoginErrors(balances));
 
 cli.command('fanout <amount> <fromCoin> <coinsAndRatios...>')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)

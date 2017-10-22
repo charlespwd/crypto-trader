@@ -1,4 +1,4 @@
-import { poloniex, coinbase, bittrex, mockapi } from '../api';
+import { allapis, poloniex, coinbase, bittrex, mockapi } from '../api';
 import { IS_DRY_RUN_DEFAULT } from '../constants';
 
 const defaultExchange = IS_DRY_RUN_DEFAULT ? 'mockapi' : 'poloniex';
@@ -19,6 +19,8 @@ export default function exchange(exchange: string = defaultExchange): Api {
     case 'mo':
     case 'mock':
     case 'mockapi': return mockapi;
+
+    case 'all': return allapis;
 
     default: throw new Error('Unsupported exchange');
   }
