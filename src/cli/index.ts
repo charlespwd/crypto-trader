@@ -257,20 +257,22 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
     callback();
   }));
 
-cli.command('quote [currency]', 'Get a quote for a currency in USD.')
+cli.command('quote [currencies...]', 'Get a quote for a currency in USD.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const api = exchange(args.options.exchange || 'bittrex');
-    const currency = args.currency.toUpperCase() as string;
+    const currencies = args.currencies.map(x => x.toUpperCase()) as string[];
     const [fiatTickers, cryptoTickers] = await Promise.all([
       fiat.tickers(),
       api.tickers(),
     ]);
     const tickers = R.merge(cryptoTickers, fiatTickers);
-    const usd = estimate(1, currency, 'USDT', tickers);
-    const cad = estimate(1, currency, 'CAD', tickers);
-    log(`1 ${currency} = ${usd.toFixed(5)} USD`);
-    log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
+    for (const currency of currencies) {
+      const usd = estimate(1, currency, 'USDT', tickers);
+      const cad = estimate(1, currency, 'CAD', tickers);
+      log(`1 ${currency} = ${usd.toFixed(5)} USD`);
+      log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
+    }
     callback();
   }));
 
