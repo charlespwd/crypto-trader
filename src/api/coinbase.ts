@@ -57,14 +57,57 @@ const toTotal = R.pipe(
   R.sum,
 );
 
+interface TransactionResponse {
+  txns: {}[];
+  pagination?: {
+    next_uri: string;
+  };
+}
+
+function getTransactions(account, pagination = null): Promise<TransactionResponse> {
+  let resolve;
+  let reject;
+
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  account.getTransactions(pagination, (err, txns, pagination) => {
+    if (err) return reject(err);
+    resolve({
+      txns,
+      pagination,
+    });
+  });
+
+  return promise as Promise<TransactionResponse>;
+}
+
+async function getAllTransactions(account) {
+  let txns = [];
+  let pagination;
+
+  const response = await getTransactions(account);
+  txns = txns.concat(response.txns);
+  pagination = response.pagination;
+
+  while (pagination && pagination.next_uri) {
+    const response = await getTransactions(account, pagination);
+    txns = txns.concat(response.txns);
+    pagination = response.pagination;
+  }
+
+  return txns;
+}
+
 async function totalSpent(): Promise<number> {
   const accountData = await state.getAccounts({});
 
   let txs = [];
   for (const accountD of accountData) {
     const account = await state.getAccount(accountD.id);
-    const getTransactions = promisify(account.getTransactions.bind(account));
-    const transactions = await getTransactions(null);
+    const transactions = await getAllTransactions(account);
     txs = txs.concat(transactions);
   }
 
