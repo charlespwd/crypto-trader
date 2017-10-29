@@ -12,6 +12,7 @@ import {
   formatBalances,
   formatPairs,
   formatPerformances,
+  formatQuotes,
   log,
   nonZeroBalances,
   setLogger,
@@ -267,12 +268,7 @@ cli.command('quote [currencies...]', 'Get a quote for a currency in USD.')
       api.tickers(),
     ]);
     const tickers = R.merge(cryptoTickers, fiatTickers);
-    for (const currency of currencies) {
-      const usd = estimate(1, currency, 'USDT', tickers);
-      const cad = estimate(1, currency, 'CAD', tickers);
-      log(`1 ${currency} = ${usd.toFixed(5)} USD`);
-      log(`1 ${currency} = ${cad.toFixed(5)} CAD`);
-    }
+    log(formatQuotes(currencies, tickers));
     callback();
   }));
 

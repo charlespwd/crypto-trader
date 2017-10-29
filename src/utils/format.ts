@@ -4,6 +4,7 @@ import * as Table from 'cli-table';
 import * as R from 'ramda';
 import { btcToUSD } from './conversions';
 import * as colors from 'colors/safe';
+import { estimate } from './conversions';
 const {
   F,
   contains,
@@ -187,4 +188,23 @@ export function formatTradeSuccess(data) {
 
 export function formatTradeFailure(data) {
   return `${failureMsg}: (Dest: ${data.destinationCoin}) Reason: ${data.reason.message}`;
+}
+
+export function formatQuotes(currencies, tickers) {
+  const table = new Table({
+    head: ['Coin', '$ USD', '$ CAD'],
+    colAligns: ['right', 'right', 'right'],
+  });
+
+  for (const currency of currencies) {
+    const usd = estimate(1, currency, 'USDT', tickers);
+    const cad = estimate(1, currency, 'CAD', tickers);
+    table.push([
+      `1 ${currency} =`,
+      `${usd.toFixed(2)} USD`,
+      `${cad.toFixed(2)} CAD`,
+    ]);
+  }
+
+  return table.toString();
 }
