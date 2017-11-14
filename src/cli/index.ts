@@ -192,6 +192,7 @@ cli.command('summary', 'Displays your portfolio summary.')
       totalAfterFees,
       totalSpent,
       roiAfterFees,
+      roiOnMoneySpentAmount,
       roiOnMoneySpent,
       coinbaseFees,
       exchangeFees,
@@ -241,7 +242,7 @@ cli.command('summary', 'Displays your portfolio summary.')
 
     table.push([
       'ROI (on money spent)',
-      '-',
+      pp(roiOnMoneySpentAmount),
       pp(roiOnMoneySpent) + '%',
     ]);
 

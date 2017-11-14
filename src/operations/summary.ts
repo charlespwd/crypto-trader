@@ -30,6 +30,7 @@ export default async function summary(args) {
   const totalAfterFees = totalSpent - totalFees;
   const roiAfterFees = ((estimatedUSDTotal / currentRate / totalAfterFees) - 1) * 100;
   const roiOnMoneySpent = ((estimatedUSDTotal / currentRate / totalSpent) - 1) * 100;
+  const roiOnMoneySpentAmount = estimatedUSDTotal / currentRate - totalSpent;
 
   return {
     buyRate,
@@ -41,6 +42,7 @@ export default async function summary(args) {
     totalSpent,
     roiAfterFees,
     roiOnMoneySpent,
+    roiOnMoneySpentAmount,
     coinbaseFees,
     exchangeFees,
     totalFees,

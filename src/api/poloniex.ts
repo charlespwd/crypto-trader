@@ -60,7 +60,7 @@ function handleResponse(rawData: string) {
 async function makeRequest(params: any) {
   return handleResponse(await Promise.race([
     request(params),
-    timeout(10000),
+    timeout(10000, 'poloniex'),
   ]));
 }
 

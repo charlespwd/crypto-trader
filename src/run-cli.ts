@@ -2,6 +2,7 @@ import { run } from './cli';
 import { forEachObjIndexed } from 'ramda';
 import * as auth from './auth';
 import * as apis from './api';
+require('util.promisify/shim')();
 
 const prompt = require('prompt');
 const schema = {

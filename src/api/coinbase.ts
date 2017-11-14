@@ -125,7 +125,56 @@ async function sell(options: TradeOptions): Promise<number> {
 }
 
 async function tickers(): Promise<Tickers> {
-  throw new Error('Tickers not implemented');
+  const getSpotPrice = promisify(
+    state.client.getBuyPrice.bind(state.client),
+  );
+
+  const data = await Promise.all([
+    getSpotPrice({ currencyPair: 'BTC-USD' }),
+    getSpotPrice({ currencyPair: 'LTC-USD' }),
+    getSpotPrice({ currencyPair: 'ETH-USD' }),
+  ]);
+
+  const [btc, ltc, eth] = data.map(x => x.data);
+
+  return {
+    USDT_BTC: {
+      currencyPair: 'USDT_BTC',
+      last: btc.amount,
+      lowestAsk: btc.amount,
+      highestBid: btc.amount,
+      percentChange: 0,
+      baseVolume: 0,
+      quoteVolume: 0,
+      isFrozen: false,
+      '24hrHigh': btc.amount,
+      '24hrLow': btc.amount,
+    },
+    USDT_LTC: {
+      currencyPair: 'USDT_LTC',
+      last: ltc.amount,
+      lowestAsk: ltc.amount,
+      highestBid: ltc.amount,
+      percentChange: 0,
+      baseVolume: 0,
+      quoteVolume: 0,
+      isFrozen: false,
+      '24hrHigh': ltc.amount,
+      '24hrLow': ltc.amount,
+    },
+    USDT_ETH: {
+      currencyPair: 'USDT_ETH',
+      last: eth.amount,
+      lowestAsk: eth.amount,
+      highestBid: eth.amount,
+      percentChange: 0,
+      baseVolume: 0,
+      quoteVolume: 0,
+      isFrozen: false,
+      '24hrHigh': eth.amount,
+      '24hrLow': eth.amount,
+    },
+  };
 }
 
 interface CoinbaseApi extends Api {

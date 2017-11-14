@@ -75,7 +75,7 @@ async function makeRequest(options) {
 
   return handleResponse(await Promise.race([
     request(params),
-    timeout(10000),
+    timeout(10000, 'bittrex'),
   ]));
 }
 
