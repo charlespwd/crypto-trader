@@ -7,8 +7,7 @@ import {
   toPairs,
 } from 'ramda';
 import { log } from './log';
-import * as bfs from './bfs';
-
+import * as bfs from './bfs'; 
 export const nonZeroBalances = filter(x => x > 0);
 
 export function extractFromAndTo(tradeType, currencyPair) {
@@ -99,6 +98,16 @@ const tickersToRateGraph = tickersToGraphFactory(
   ticker => 1 / ticker.last,
   ticker => ticker.last,
 );
+
+export function estimatePercentChange(fromCoin: string, toCoin: string, tickers: Tickers): number {
+  const graph = tickersToGraphFactory(
+    ticker => 1 / (1 + ticker.percentChange) - 1,
+    ticker => ticker.percentChange,
+  )(tickers);
+  const percentChanges = bfs.shortestPath(graph, fromCoin, toCoin);
+  if (!percentChanges) throw new Error(`Cannot convert ${fromCoin} to ${toCoin}`);
+  return percentChanges.reduce((a, b) => a * (1 + b), 1) * 100 - 100;
+}
 
 export function estimate(fromAmount: number, fromCoin: string, toCoin: string, tickers: Tickers): number {
   const graph = tickersToRateGraph(tickers);

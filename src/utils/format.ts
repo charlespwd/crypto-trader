@@ -4,7 +4,7 @@ import * as Table from 'cli-table';
 import * as R from 'ramda';
 import { btcToUSD } from './conversions';
 import * as colors from 'colors/safe';
-import { estimate } from './conversions';
+import { estimate, estimatePercentChange } from './conversions';
 const {
   F,
   contains,
@@ -192,17 +192,19 @@ export function formatTradeFailure(data) {
 
 export function formatQuotes(currencies, tickers) {
   const table = new Table({
-    head: ['Coin', '$ USD', '$ CAD'],
-    colAligns: ['right', 'right', 'right'],
+    head: ['Coin', '$ USD', '$ CAD', '24h %'],
+    colAligns: ['right', 'right', 'right', 'right'],
   });
 
   for (const currency of currencies) {
     const usd = estimate(1, currency, 'USDT', tickers);
     const cad = estimate(1, currency, 'CAD', tickers);
+    const percent = estimatePercentChange(currency, 'CAD', tickers);
     table.push([
       `1 ${currency} =`,
       `${usd.toFixed(2)} USD`,
       `${cad.toFixed(2)} CAD`,
+      `${percent.toFixed(2)} %`,
     ]);
   }
 

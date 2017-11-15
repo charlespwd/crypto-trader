@@ -1,4 +1,4 @@
-import { toPairs } from 'ramda';
+import { toPairs, contains } from 'ramda';
 
 export type GraphNodes = Set<string>;
 export type GraphEdgeCost = number;
@@ -24,16 +24,17 @@ export function shortestPath<T>(graph: Graph<T>, start, end): T[] {
   while (queue.length > 0) {
     const current = queue.shift();
 
+    if (current === end) {
+      return constructPath(current, meta);
+    }
+
     for (const [node, action] of toPairs<string, T>(edges[current])) {
       if (visited.has(node)) continue;
 
-      meta[node] = [current, action];
-
-      if (node === end) {
-        return constructPath(node, meta);
+      if (!contains(node, queue)) {
+        meta[node] = [current, action];
+        queue.push(node);
       }
-
-      queue.push(node);
     }
 
     visited.add(current);
