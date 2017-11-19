@@ -259,6 +259,23 @@ cli.command('pairs [currencies...]', 'List all the currency pairs on the exchang
     callback();
   }));
 
+cli.command('estimate <fromAmount> <fromCoin> <toCoin>')
+  .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const fromAmount = parseFloat(args.fromAmount);
+    const fromCoin = args.fromCoin.toUpperCase();
+    const toCoin = args.toCoin.toUpperCase();
+    const api = exchange(args.options.exchange || 'bittrex');
+    const [fiatTickers, cryptoTickers] = await Promise.all([
+      fiat.tickers(),
+      api.tickers(),
+    ]);
+    const tickers = R.merge(cryptoTickers, fiatTickers);
+    const toAmount = estimate(fromAmount, fromCoin, toCoin, tickers);
+    log(`${fromAmount} ${fromCoin} = ${toAmount} ${toCoin}`);
+    callback();
+  }));
+
 cli.command('quote [currencies...]', 'Get a quote for a currency in USD.')
   .option('-x, --exchange [exchange]', exchangeOptDesc, supportedExchanges)
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
