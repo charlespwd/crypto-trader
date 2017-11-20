@@ -230,9 +230,64 @@ async function trades(): Promise<TradeHistory> {
   return fromPoloniexTradeHistoryToTradeHistory(result);
 }
 
+interface PoloniexChartData {
+  date: number;
+  high: number;
+  low: number;
+  open: number;
+  close: number;
+  volume: number;
+  quoteVolume: number;
+  weightedAverage: number;
+};
+
+function poloniexPublicTradesToTicker(currencyPair: string, trades: PoloniexChartData[]): Ticker {
+  const percentChange = (a, b) => (b - a) / a;
+  //console.log(currencyPair, R.map(R.evolve({ date: (x: number) => moment.utc(x, 'X') }), trades));
+  return {
+    currencyPair,
+    last: R.last(trades).open,
+    lowestAsk: R.last(trades).low,
+    highestBid: R.last(trades).high,
+    percentChange: percentChange(
+      R.last(trades).open,
+      R.last(trades).close,
+    ),
+    baseVolume: R.last(trades).volume,
+    quoteVolume: R.last(trades).quoteVolume,
+    isFrozen: false,
+    '24hrLow': R.last(trades).low,
+    '24hrHigh': R.last(trades).high,
+  };
+}
+
+async function historicalTicker(day: moment.Moment, currencyPair = 'all'): Promise<Ticker> {
+  const result: PoloniexChartData[] = await get('returnChartData', {
+    start: moment.utc(day).startOf('day').format('X'),
+    end: moment.utc(day).add(1, 'day').endOf('day').format('X'),
+    currencyPair,
+    period: 86400,
+  });
+
+  return poloniexPublicTradesToTicker(currencyPair, result);
+}
+
+async function historicalTickers(day: moment.Moment, pairs: string[]): Promise<Tickers> {
+  const tickers = await Promise.all(
+    pairs.map(x => historicalTicker(day, x))
+  );
+  return R.zipObj(pairs, tickers);
+}
+
 const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid / 1.01;
 const buyRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].lowestAsk * 1.01;
-const api: Api = {
+
+interface PoloniexApi extends Api {
+  historicalTicker(day: moment.Moment, currencyPair: string): Promise<Ticker>
+  historicalTickers(day: moment.Moment, currencyPairs: string[]): Promise<Ticker>
+};
+
+const api: PoloniexApi = {
   name: 'poloniex',
   init,
   balances: withLogin(balances),
@@ -243,6 +298,8 @@ const api: Api = {
   buyRate: withLogin(buyRate),
   addresses: withLogin(addresses),
   trades: withLogin(trades),
+  historicalTicker: withLogin(historicalTicker),
+  historicalTickers: withLogin(historicalTickers),
 };
 
 export default api;

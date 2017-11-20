@@ -1,11 +1,13 @@
 import * as R from 'ramda';
 import * as strategy from '../operations/strategy';
+import * as moment from 'moment';
 import trade from '../operations/trade';
 import summary from '../operations/summary';
 import { IS_DRY_RUN_DEFAULT } from '../constants';
 import { performanceByExchange } from '../operations/performance';
 import * as fiat from '../fiat';
 import * as auth from '../auth';
+import poloniex from '../api/poloniex';
 import {
   estimate,
   formatAddresses,
@@ -18,6 +20,7 @@ import {
   setLogger,
   toCADBalances,
   withHandledLoginErrors,
+  tradePath,
 } from '../utils';
 import fanout from './fanout';
 import balances from './balances';
@@ -285,7 +288,41 @@ cli.command('quote [currencies...]', 'Get a quote for a currency in USD.')
       fiat.tickers(),
       api.tickers(),
     ]);
-    const tickers = R.merge(cryptoTickers, fiatTickers);
+    const pairs = R.pipe(
+      R.chain((x: string) => tradePath(x, 'USDT', cryptoTickers)),
+      R.map(x => x.currencyPair),
+      R.uniq,
+    )(currencies);
+    const [seven, month, three, six, year] = await Promise.all([
+      poloniex.historicalTickers(
+        moment.utc().subtract(7, 'days'),
+        pairs,
+      ),
+      poloniex.historicalTickers(
+        moment.utc().subtract(1, 'month'),
+        pairs,
+      ),
+      poloniex.historicalTickers(
+        moment.utc().subtract(3, 'month'),
+        pairs,
+      ),
+      poloniex.historicalTickers(
+        moment.utc().subtract(6, 'month'),
+        pairs,
+      ),
+      poloniex.historicalTickers(
+        moment.utc().subtract(1, 'year'),
+        pairs,
+      ),
+    ]);
+    const tickers = {
+      day: R.merge(cryptoTickers, fiatTickers),
+      week: R.merge(seven, fiatTickers),
+      month: R.merge(month, fiatTickers),
+      three: R.merge(three, fiatTickers),
+      six: R.merge(six, fiatTickers),
+      year: R.merge(year, fiatTickers),
+    };
     log(formatQuotes(currencies, tickers));
     callback();
   }));
@@ -325,7 +362,6 @@ cli.command('performance [currencies...]', 'Get a list of performances by exchan
     ));
     callback();
   }));
-
 
 export function run() {
   if (IS_DRY_RUN_DEFAULT) {

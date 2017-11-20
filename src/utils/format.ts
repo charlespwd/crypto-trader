@@ -190,21 +190,39 @@ export function formatTradeFailure(data) {
   return `${failureMsg}: (Dest: ${data.destinationCoin}) Reason: ${data.reason.message}`;
 }
 
-export function formatQuotes(currencies, tickers) {
+function percentChange(a, b) {
+  return (b - a) / a * 100;
+}
+
+interface TickersByDelta {
+  [s: string]: Tickers;
+  day: Tickers;
+  month: Tickers;
+  three: Tickers;
+  six: Tickers;
+  week: Tickers;
+}
+
+export function formatQuotes(currencies, tickers: TickersByDelta) {
   const table = new Table({
-    head: ['Coin', '$ USD', '$ CAD', '24h %'],
-    colAligns: ['right', 'right', 'right', 'right'],
+    head: ['Coin', '$ USD', '$ CAD', '24H %', '7D %', '1M %', '3M %', '6M %', '1Y %'],
+    colAligns: ['right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right'],
   });
 
   for (const currency of currencies) {
-    const usd = estimate(1, currency, 'USDT', tickers);
-    const cad = estimate(1, currency, 'CAD', tickers);
-    const percent = estimatePercentChange(currency, 'CAD', tickers);
+    const cad = R.map(x => estimate(1, currency, 'CAD', x), tickers);
+    const usd = estimate(1, currency, 'USDT', tickers.day);
+    const percent = estimatePercentChange(currency, 'CAD', tickers.day);
     table.push([
       `1 ${currency} =`,
       `${usd.toFixed(2)} USD`,
-      `${cad.toFixed(2)} CAD`,
+      `${cad.day.toFixed(2)} CAD`,
       `${percent.toFixed(2)} %`,
+      `${percentChange(cad.week, cad.day).toFixed(2)} %`,
+      `${percentChange(cad.month, cad.day).toFixed(2)} %`,
+      `${percentChange(cad.three, cad.day).toFixed(2)} %`,
+      `${percentChange(cad.six, cad.day).toFixed(2)} %`,
+      `${percentChange(cad.year, cad.day).toFixed(2)} %`,
     ]);
   }
 
