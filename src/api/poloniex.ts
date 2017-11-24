@@ -262,21 +262,26 @@ function poloniexPublicTradesToTicker(currencyPair: string, trades: PoloniexChar
 }
 
 async function historicalTicker(day: moment.Moment, currencyPair = 'all'): Promise<Ticker> {
-  const result: PoloniexChartData[] = await get('returnChartData', {
-    start: moment.utc(day).startOf('day').format('X'),
-    end: moment.utc(day).add(1, 'day').endOf('day').format('X'),
-    currencyPair,
-    period: 86400,
-  });
+  try {
+    const result: PoloniexChartData[] = await get('returnChartData', {
+      start: moment.utc(day).startOf('day').format('X'),
+      end: moment.utc(day).add(1, 'day').endOf('day').format('X'),
+      currencyPair,
+      period: 86400,
+    });
 
-  return poloniexPublicTradesToTicker(currencyPair, result);
+    return poloniexPublicTradesToTicker(currencyPair, result);
+  } catch (e) {
+    console.log(e.message);
+    return undefined;
+  }
 }
 
 async function historicalTickers(day: moment.Moment, pairs: string[]): Promise<Tickers> {
   const tickers = await Promise.all(
     pairs.map(x => historicalTicker(day, x))
   );
-  return R.zipObj(pairs, tickers);
+  return R.reject(R.isNil, R.zipObj(pairs, tickers));
 }
 
 const sellRate = (currencyPair: string, tickers: Tickers) => tickers[currencyPair].highestBid / 1.01;

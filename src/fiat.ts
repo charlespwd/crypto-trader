@@ -30,11 +30,15 @@ export async function tickers(): Promise<Tickers> {
 
 export async function getRates(from) {
   const fromCurrency = from.toUpperCase();
-  const response = await request({
-    method: 'GET',
-    url: rateUrl(fromCurrency),
-  });
-  return JSON.parse(response).rates;
+  try {
+    const response = await request({
+      method: 'GET',
+      url: rateUrl(fromCurrency),
+    });
+    return JSON.parse(response).rates;
+  } catch (e) {
+    throw new Error(`Can't get ${from} rates. ${e.message}`);
+  }
 }
 
 export async function getRate(from, to) {

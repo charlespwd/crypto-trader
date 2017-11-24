@@ -191,6 +191,7 @@ export function formatTradeFailure(data) {
 }
 
 function percentChange(a, b) {
+  if (a === 0) return 0;
   return (b - a) / a * 100;
 }
 
@@ -203,6 +204,14 @@ interface TickersByDelta {
   week: Tickers;
 }
 
+function tryToEstimate(amount, fromCoin, toCoin, tickers) {
+  try {
+    return estimate(amount, fromCoin, toCoin, tickers);
+  } catch (e) {
+    return 0;
+  }
+}
+
 export function formatQuotes(currencies, tickers: TickersByDelta) {
   const table = new Table({
     head: ['Coin', '$ USD', '$ CAD', '24H %', '7D %', '1M %', '3M %', '6M %', '1Y %'],
@@ -210,7 +219,7 @@ export function formatQuotes(currencies, tickers: TickersByDelta) {
   });
 
   for (const currency of currencies) {
-    const cad = R.map(x => estimate(1, currency, 'CAD', x), tickers);
+    const cad = R.map(x => tryToEstimate(1, currency, 'CAD', x), tickers);
     const usd = estimate(1, currency, 'USDT', tickers.day);
     const percent = estimatePercentChange(currency, 'CAD', tickers.day);
     table.push([
