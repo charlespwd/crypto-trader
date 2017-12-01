@@ -195,6 +195,22 @@ function percentChange(a, b) {
   return (b - a) / a * 100;
 }
 
+export function prettyChange(x, n = 2) {
+  if (x >= 0) {
+    return colors.green(x.toFixed(n));
+  } else {
+    return colors.red(x.toFixed(n));
+  }
+}
+
+export function prettyPercentChange(x) {
+  if (x >= 0) {
+    return colors.green(x.toFixed(2) + ' %');
+  } else {
+    return colors.red(x.toFixed(2) + ' %');
+  }
+}
+
 interface TickersByDelta {
   [s: string]: Tickers;
   day: Tickers;
@@ -226,12 +242,12 @@ export function formatQuotes(currencies, tickers: TickersByDelta) {
       `1 ${currency} =`,
       `${usd.toFixed(2)} USD`,
       `${cad.day.toFixed(2)} CAD`,
-      `${percent.toFixed(2)} %`,
-      `${percentChange(cad.week, cad.day).toFixed(2)} %`,
-      `${percentChange(cad.month, cad.day).toFixed(2)} %`,
-      `${percentChange(cad.three, cad.day).toFixed(2)} %`,
-      `${percentChange(cad.six, cad.day).toFixed(2)} %`,
-      `${percentChange(cad.year, cad.day).toFixed(2)} %`,
+      prettyPercentChange(percent),
+      prettyPercentChange(percentChange(cad.week, cad.day)),
+      prettyPercentChange(percentChange(cad.month, cad.day)),
+      prettyPercentChange(percentChange(cad.three, cad.day)),
+      prettyPercentChange(percentChange(cad.six, cad.day)),
+      prettyPercentChange(percentChange(cad.year, cad.day)),
     ]);
   }
 

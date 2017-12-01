@@ -15,6 +15,8 @@ import {
   formatPairs,
   formatPerformances,
   formatQuotes,
+  prettyChange,
+  prettyPercentChange,
   log,
   nonZeroBalances,
   setLogger,
@@ -240,13 +242,13 @@ cli.command('summary', 'Displays your portfolio summary.')
     table.push([
       'ROI (after fees)',
       '-',
-      pp(roiAfterFees) + '%',
+      prettyPercentChange(roiAfterFees),
     ]);
 
     table.push([
       'ROI (on money spent)',
-      pp(roiOnMoneySpentAmount),
-      pp(roiOnMoneySpent) + '%',
+      prettyChange(roiOnMoneySpentAmount),
+      prettyPercentChange(roiOnMoneySpent),
     ]);
 
     log(table.toString());
