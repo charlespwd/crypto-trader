@@ -2,9 +2,12 @@ import '../types/api';
 import '../types/operations';
 import * as Table from 'cli-table';
 import * as R from 'ramda';
-import { btcToUSD } from './conversions';
+import {
+  btcToUSD,
+  estimate,
+  estimatePercentChange,
+} from './conversions';
 import * as colors from 'colors/safe';
-import { estimate, estimatePercentChange } from './conversions';
 const {
   F,
   contains,
@@ -250,6 +253,60 @@ export function formatQuotes(currencies, tickers: TickersByDelta) {
       prettyPercentChange(percentChange(cad.year, cad.day)),
     ]);
   }
+
+  return table.toString();
+}
+
+const formatCurrency = (x: number, currency = 'USD') =>
+  new Intl.NumberFormat('en-CA', { style: 'currency', currency }).format(x);
+
+const formatDecimal = (x: number, n = 2) =>
+  new Intl.NumberFormat(
+    'en-CA',
+    {
+      style: 'decimal',
+      minimumFractionDigits: n,
+      maximumFractionDigits: n,
+    },
+  ).format(x);
+
+export const prettyPercent = (x, n = 4) => (x * 100).toFixed(n);
+export const apr = x => (1 + x) ** 365 - 1;
+
+export function formatLoans(currency: string, loans: LoanOrder[], tickers: Tickers, n = 5) {
+  const table = new Table({
+    head: ['Depth CAD', `Depth ${currency}`, 'Rate %', 'APR %'],
+    colAligns: ['right', 'right', 'right', 'right'],
+  });
+
+  const [depth, summaries] = R.mapAccum(
+    (acc, x) => [
+      acc + x.amount,
+      {
+        amount: acc + x.amount,
+        rate: x.rate,
+      },
+    ],
+    0,
+    loans,
+  );
+
+  let lastDepth;
+  const multiplier = 1.25;
+  for (const loan of summaries) {
+    if (!lastDepth || loan.amount / lastDepth > multiplier) {
+      const value = estimate(loan.amount, currency, 'CAD', tickers);
+      table.push([
+        formatDecimal(value, 2),
+        loan.amount.toFixed(8),
+        prettyPercent(loan.rate, n),
+        prettyPercent(apr(loan.rate), n),
+      ]);
+      lastDepth = loan.amount;
+    }
+  }
+
+  table.concat(summaries[1]);
 
   return table.toString();
 }

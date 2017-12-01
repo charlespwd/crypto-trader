@@ -1,4 +1,4 @@
-declare type ExchangeName = 'poloniex' | 'bittrex' | 'coinbase';
+declare type ExchangeName = 'poloniex' | 'bittrex' | 'coinbase' | 'bitfinex';
 
 declare interface Ticker {
   currencyPair: string;
@@ -45,6 +45,13 @@ declare interface Trade {
 
 declare interface TradeHistory {
   [currencyPair: string]: Trade[];
+}
+
+interface LoanOrder {
+  rate: number;
+  amount: number;
+  rangeMin: number;
+  rangeMax: number;
 }
 
 declare interface Api {

@@ -9,20 +9,23 @@ import * as fiat from '../fiat';
 import * as auth from '../auth';
 import poloniex from '../api/poloniex';
 import {
+  apr,
   estimate,
   formatAddresses,
   formatBalances,
+  formatLoans,
   formatPairs,
   formatPerformances,
   formatQuotes,
-  prettyChange,
-  prettyPercentChange,
   log,
   nonZeroBalances,
+  prettyChange,
+  prettyPercent,
+  prettyPercentChange,
   setLogger,
   toCADBalances,
-  withHandledLoginErrors,
   tradePath,
+  withHandledLoginErrors,
 } from '../utils';
 import fanout from './fanout';
 import balances from './balances';
@@ -364,6 +367,31 @@ cli.command('performance [currencies...]', 'Get a list of performances by exchan
     ));
     callback();
   }));
+
+cli.command('loans <currency>', 'Get a depth / rate table of loans on poloniex')
+  .alias('loan')
+  .option('-n, --fixed-digits [n]')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const currency = args.currency.toUpperCase();
+    const [
+      loans,
+      cryptoTickers,
+      fiatTickers,
+    ] = await Promise.all([
+      poloniex.loanOrders(currency),
+      poloniex.tickers(),
+      fiat.tickers(),
+    ]);
+    const tickers = R.merge(cryptoTickers, fiatTickers);
+    log(formatLoans(currency, loans, tickers, args.options['fixed-digits']));
+    callback();
+  }));
+
+cli.command('apr <rate>')
+  .action((args, callback) => {
+    log(prettyPercent(apr(args.rate / 100)) + ' %');
+    callback();
+  });
 
 export function run() {
   if (IS_DRY_RUN_DEFAULT) {
