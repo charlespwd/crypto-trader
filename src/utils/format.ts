@@ -310,3 +310,23 @@ export function formatLoans(currency: string, loans: LoanOrder[], tickers: Ticke
 
   return table.toString();
 }
+
+export function formatOpenOffers(offers: LoanOffer[]) {
+  const table = new Table({
+    head: ['id', 'amount', 'currency', 'rate', 'duration', 'autorenew'],
+    colAligns: ['right', 'right', 'right', 'right', 'right', 'right'],
+  });
+
+  for (const loan of offers) {
+    table.push([
+      loan.id,
+      loan.amount,
+      loan.currency,
+      prettyPercent(loan.rate) + '%',
+      loan.duration,
+      loan.autoRenew.toString(),
+    ]);
+  }
+
+  return table.toString();
+}

@@ -304,13 +304,53 @@ async function loanOrders(currency: string): Promise<LoanOrder[]> {
     limit: 200,
   });
 
-  return orders.offers.map(x => R.map(parseFloat, x));
+  return orders.offers.map(x => R.map(parseFloat, x)).map(x => ({ ...x, currency }));
+}
+
+interface PoloniexOpenLoanOffer {
+  id: string;
+  rate: string;
+  amount: string;
+  duration: string;
+  autoRenew: number;
+  date: string;
+}
+
+interface PoloniexOpenLoanOrders {
+  [currency: string]: PoloniexOpenLoanOffer[];
+}
+
+
+function toLoanOrders(orders: any): LoanOffer[] {
+  return R.pipe(
+    R.toPairs,
+    R.map(([currency, offers]) =>
+      R.map(
+        offer => ({
+          currency,
+          id: offer.id,
+          rate: parseFloat(offer.rate),
+          amount: parseFloat(offer.amount),
+          autoRenew: !!offer.autoRenew,
+          duration: offer.duration,
+        }),
+        offers,
+      ),
+    ),
+    R.reduce<LoanOffer[][], LoanOffer[]>(R.concat, []),
+  )(orders) as LoanOffer[];
+}
+
+async function openLoanOrders(): Promise<LoanOffer[]> {
+  const orders: PoloniexOpenLoanOrders = await post('returnOpenLoanOffers');
+  return toLoanOrders(orders);
 }
 
 interface PoloniexApi extends Api {
   historicalTicker(day: moment.Moment, currencyPair: string): Promise<Ticker>;
   historicalTickers(day: moment.Moment, currencyPairs: string[]): Promise<Ticker>;
   loanOrders(currency: string): Promise<LoanOrder[]>;
+  openLoanOrders(): Promise<LoanOffer[]>;
 }
 
 const api: PoloniexApi = {
@@ -327,6 +367,7 @@ const api: PoloniexApi = {
   historicalTicker: withLogin(historicalTicker),
   historicalTickers: withLogin(historicalTickers),
   loanOrders: withLogin(loanOrders),
+  openLoanOrders: withLogin(openLoanOrders),
 };
 
 export default api;

@@ -16,6 +16,7 @@ import {
   formatLoans,
   formatPairs,
   formatPerformances,
+  formatOpenOffers,
   formatQuotes,
   log,
   nonZeroBalances,
@@ -384,6 +385,14 @@ cli.command('loans <currency>', 'Get a depth / rate table of loans on poloniex')
     ]);
     const tickers = R.merge(cryptoTickers, fiatTickers);
     log(formatLoans(currency, loans, tickers, args.options['fixed-digits']));
+    callback();
+  }));
+
+cli.command('open loans', 'Get your open loans')
+  .alias('ol')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const data = await poloniex.openLoanOrders();
+    log(formatOpenOffers(data));
     callback();
   }));
 

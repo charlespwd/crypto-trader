@@ -48,10 +48,20 @@ declare interface TradeHistory {
 }
 
 interface LoanOrder {
-  rate: number;
   amount: number;
-  rangeMin: number;
+  currency: string;
   rangeMax: number;
+  rangeMin: number;
+  rate: number;
+}
+
+interface LoanOffer {
+  id: number;
+  amount: number;
+  currency: string;
+  duration: number;
+  rate: number;
+  autoRenew: boolean;
 }
 
 declare interface Api {
