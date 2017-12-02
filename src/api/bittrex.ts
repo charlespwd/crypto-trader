@@ -2,6 +2,7 @@ import * as request from 'request-promise-native';
 import * as qs from 'query-string';
 import * as crypto from 'crypto';
 import * as auth from '../auth';
+import * as moment from 'moment';
 import { timeout, log, withLoginFactory, sleep } from '../utils';
 import {
   map,
@@ -313,8 +314,9 @@ const types = {
 };
 
 function toTradeHistory(bittrexTrades: BittrexTrade[]): TradeHistory {
-  const trades = map(x => ({
+  const trades: Trade[] = map(x => ({
     currencyPair: x.Exchange.replace(/-/, '_'),
+    date: moment(x.TimeStamp),
     type: convertTradeType(x.OrderType),
     amount: x.Quantity,
     total: x.Price,

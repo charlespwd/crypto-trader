@@ -1,4 +1,3 @@
-import '../types/api';
 import * as EventEmitter from 'events';
 import { expect } from 'chai';
 import * as sinon from 'sinon';

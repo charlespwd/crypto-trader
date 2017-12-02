@@ -1,5 +1,3 @@
-import '../types/api';
-
 export const ticker = (pair, last) => ({
   currencyPair: pair,
   last,

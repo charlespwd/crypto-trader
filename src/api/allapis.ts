@@ -1,4 +1,3 @@
-import '../types/api';
 import poloniex from './poloniex';
 import coinbase from './coinbase';
 import bittrex from './bittrex';

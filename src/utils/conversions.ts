@@ -1,4 +1,3 @@
-import '../types/api';
 import {
   filter,
   mapObjIndexed,
@@ -10,7 +9,7 @@ import { log } from './log';
 import * as bfs from './bfs'; 
 export const nonZeroBalances = filter(x => x > 0);
 
-export function extractFromAndTo(tradeType, currencyPair) {
+export function extractFromAndTo(tradeType: TradeType, currencyPair) {
   const parts = currencyPair.split('_');
   if (tradeType === 'buy') {
     return {
@@ -22,6 +21,20 @@ export function extractFromAndTo(tradeType, currencyPair) {
       fromCoin: parts[1],
       toCoin: parts[0],
     };
+  }
+}
+
+export function extractFromAmount(tradeType: TradeType, amount, total) {
+  switch (tradeType) {
+    case 'buy': return total;
+    case 'sell': return amount;
+  }
+}
+
+export function extractToAmount(tradeType: TradeType, amount, total) {
+  switch (tradeType) {
+    case 'buy': return amount;
+    case 'sell': return total;
   }
 }
 

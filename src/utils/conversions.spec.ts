@@ -1,4 +1,3 @@
-import '../types/api';
 import { expect } from 'chai';
 import * as utils from './conversions';
 

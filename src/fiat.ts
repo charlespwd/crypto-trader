@@ -1,4 +1,3 @@
-import './types/api';
 import * as R from 'ramda';
 import * as request from 'request-promise-native';
 

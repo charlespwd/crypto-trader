@@ -1,4 +1,3 @@
-import '../types/api';
 import '../types/operations';
 import * as R from 'ramda';
 

@@ -204,6 +204,7 @@ interface PoloniexTradeHistory {
 const fromPoloniexTradeToTrade = (pair: string) => (
   (trade: PoloniexTrade): Trade => ({
     type: trade.type,
+    date: moment(trade.date),
     currencyPair: pair,
     amount: parseFloat(trade.amount),
     total: parseFloat(trade.total),
