@@ -273,6 +273,64 @@ const formatDecimal = (x: number, n = 2) =>
 export const prettyPercent = (x, n = 4) => (x * 100).toFixed(n);
 export const apr = x => (1 + x) ** 365 - 1;
 
+interface Summary {
+  interest: number;
+  fee: number;
+  earned: number;
+}
+
+function toLoanSummaries(loans: any): any {
+  return R.pipe(
+    R.groupBy((loan: any) => loan.currency),
+    (y: { [s: string]: Loan[] }) => R.map((group: Loan[]) => group.reduce(
+      (acc: any, x: any): any => ({
+        interest: acc.interest + x.interest,
+        fee: acc.fee + x.fee,
+        earned: acc.earned + x.earned,
+      }),
+    ), y),
+    R.toPairs,
+  )(loans) as [string, Summary][];
+}
+
+export function formatLendingHistory(loans: Loan[], tickers: Tickers) {
+  const table = new Table({
+    head: ['currency', 'interest', 'fee', 'earned', 'earned (CAD)'],
+    colAligns: R.times(R.always('right'), 4),
+  });
+
+  const summaries = toLoanSummaries(loans);
+
+  for (const [currency, summary] of summaries) {
+    table.push([
+      currency,
+      prettyChange(summary.interest, 8),
+      prettyChange(summary.fee, 8),
+      prettyChange(summary.earned, 8),
+      prettyChange(estimate(summary.earned, currency, 'CAD', tickers), 2),
+    ]);
+  }
+
+  return table.toString();
+}
+
+export function formatActiveLoans(loans: LoanOffer[]) {
+  const table = new Table({
+    head: ['currency', 'amount', 'rate'],
+    colAligns: R.times(R.always('right'), 3),
+  });
+
+  for (const loan of loans) {
+    table.push([
+      loan.currency,
+      formatDecimal(loan.amount, 8),
+      prettyPercent(loan.rate, 8) + '%',
+    ]);
+  }
+
+  return table.toString();
+}
+
 export function formatLoans(currency: string, loans: LoanOrder[], tickers: Tickers, n = 5) {
   const table = new Table({
     head: ['Depth CAD', `Depth ${currency}`, 'Rate %', 'APR %'],

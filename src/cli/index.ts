@@ -13,7 +13,9 @@ import {
   estimate,
   formatAddresses,
   formatBalances,
+  formatLendingHistory,
   formatLoans,
+  formatActiveLoans,
   formatPairs,
   formatPerformances,
   formatOpenOffers,
@@ -388,12 +390,71 @@ cli.command('loans <currency>', 'Get a depth / rate table of loans on poloniex')
     callback();
   }));
 
-cli.command('open loans', 'Get your open loans')
+cli.command('open loans', 'Get your open loans (cancellable loans)')
   .alias('ol')
   .action(withHandledLoginErrors(async (args: any, callback: Function) => {
     const data = await poloniex.openLoanOrders();
     log(formatOpenOffers(data));
     callback();
+  }));
+
+cli.command('active loans', 'Get your active loans')
+  .alias('al')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const data = await poloniex.activeLoanOrders();
+    log(formatActiveLoans(data));
+    callback();
+  }));
+
+cli.command('cancel loan <orderId>', 'Cancel a loan offer')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const result = await poloniex.cancelLoanOffer(args.orderId);
+    log(JSON.stringify(result, null, 2));
+    callback();
+  }));
+
+async function getAmount(amount: string, currency: string) {
+  if (amount === 'max') return (await poloniex.getLendingBalances())[currency];
+  return parseFloat(amount);
+}
+
+cli.command('place loan <currency> <amount> <rate> <duration> [autoRenew]', 'Place a loan')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const currency = args.currency.toUpperCase();
+    const params = {
+      currency,
+      amount: await getAmount(args.amount, currency),
+      rate: parseFloat(args.rate) / 100,
+      duration: parseFloat(args.duration),
+      autoRenew: args.autoRenew || false,
+    };
+    log(JSON.stringify(params, null, 2));
+    const result = await poloniex.placeLoanOffer(params);
+    log(JSON.stringify(result, null, 2));
+    callback();
+  }));
+
+cli.command('available loan balance', 'list available loan balances')
+  .alias('available loan balances')
+  .alias('alb')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const balances = await poloniex.getLendingBalances();
+    log(JSON.stringify(balances, null, 2));
+  }));
+
+cli.command('lending history', 'list a summary of all lending')
+  .action(withHandledLoginErrors(async (args: any, callback: Function) => {
+    const [
+      loans,
+      cryptoTickers,
+      fiatTickers,
+    ] = await Promise.all([
+      poloniex.lendingHistory(),
+      poloniex.tickers(),
+      fiat.tickers(),
+    ]);
+    const tickers = R.merge(cryptoTickers, fiatTickers);
+    log(formatLendingHistory(loans, tickers));
   }));
 
 cli.command('apr <rate>')

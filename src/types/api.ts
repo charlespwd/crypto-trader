@@ -47,6 +47,18 @@ declare interface TradeHistory {
   [currencyPair: string]: Trade[];
 }
 
+interface Loan {
+  id: number;
+  currency: string;
+  amount: number;
+  duration: number;
+  interest: number;
+  fee: number;
+  earned: number;
+  open: string;
+  close: string;
+}
+
 interface LoanOrder {
   amount: number;
   currency: string;
