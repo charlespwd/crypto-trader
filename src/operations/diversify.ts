@@ -1,4 +1,3 @@
-import '../types/operations';
 import * as EventEmitter from 'events';
 import {
   all,

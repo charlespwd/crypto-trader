@@ -1,4 +1,3 @@
-import '../types/operations';
 import * as R from 'ramda';
 
 const toTotal = x => x.total;

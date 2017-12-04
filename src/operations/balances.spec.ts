@@ -1,19 +1,13 @@
 import { expect } from 'chai';
 import * as moment from 'moment';
-import {
-  balances,
-  runningBalances,
-  CurrencyAction,
-  DepositAction,
-  TradeAction,
-  WithdrawalAction,
-} from './balances';
+import { balances, runningBalances } from './balances';
 
 const depositAction = (amount, currency, date): DepositAction => ({
   type: 'DEPOSIT',
   deposit: {
     amount,
     currency,
+    date: moment(date, 'YYYY-MM-DD'),
   },
   date: moment(date, 'YYYY-MM-DD'),
 });
@@ -23,6 +17,7 @@ const withdrawalAction = (amount, currency, date): WithdrawalAction => ({
   withdrawal: {
     amount,
     currency,
+    date: moment(date, 'YYYY-MM-DD'),
   },
   date: moment(date, 'YYYY-MM-DD'),
 });

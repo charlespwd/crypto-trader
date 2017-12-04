@@ -80,6 +80,23 @@ declare global {
     autoRenew: boolean;
   }
 
+  interface Withdrawal {
+    amount: number;
+    currency: string;
+    date: Moment;
+  }
+
+  interface Deposit {
+    amount: number;
+    currency: string;
+    date: Moment;
+  }
+
+  interface DepositsAndWithdrawals {
+    deposits: Deposit[];
+    withdrawals: Withdrawal[];
+  }
+
   interface Api {
     name: string;
     init(): void;
@@ -91,5 +108,65 @@ declare global {
     buyRate(currencyPair: string, tickers: Tickers): number;
     sellRate(currencyPair: string, tickers: Tickers): number;
     trades(): Promise<TradeHistory>;
+    depositsAndWithdrawals(): Promise<DepositsAndWithdrawals>;
+  }
+
+  interface TimestampedAction {
+    date: Moment;
+  }
+
+  interface TradeAction extends TimestampedAction {
+    type: 'TRADE';
+    trade: Trade;
+  }
+
+  interface DepositAction extends TimestampedAction {
+    type: 'DEPOSIT';
+    deposit: Deposit;
+  }
+
+  interface WithdrawalAction extends TimestampedAction {
+    type: 'WITHDRAWAL';
+    withdrawal: Withdrawal;
+  }
+
+  export type CurrencyAction = TradeAction | DepositAction | WithdrawalAction;
+
+  namespace Operations {
+    export type Performance = {
+      currencyPair: string;
+      estimatedValue: number;
+      percentProfit: number;
+      profit: number;
+      ratio: number;
+      totalSpent: number;
+    };
+
+    export interface PerformanceByExchange {
+      [currencyPair: string]: Performance;
+    }
+
+    export type SuccessfulTrade = {
+      status: 'success';
+      toCoin: string;
+      toAmount: number;
+      fromAmount: number;
+      fromCoin: string;
+    };
+
+    export type FailedTrade = {
+      status: 'failure';
+      toCoin: string;
+      fromAmount: number;
+      currencyPair: string;
+      tradeType: 'buy' | 'sell';
+      reason: Error;
+    };
+
+    export type TradeResult = SuccessfulTrade | FailedTrade;
+    export type TradeResults = {
+      successfulTrades: SuccessfulTrade[];
+      failedTrades: FailedTrade[];
+    };
   }
 }

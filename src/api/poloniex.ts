@@ -446,6 +446,60 @@ async function lendingHistory(): Promise<Loan[]> {
   return response.map(convertLoan);
 }
 
+interface PoloniexDeposit {
+  address: string;
+  amount: string;
+  confirmations: number;
+  currency: string;
+  status: string;
+  timestamp: number;
+  txid: string;
+}
+
+interface PoloniexWithdrawal {
+  address: string;
+  amount: string;
+  currency: string;
+  fee: string;
+  ipAddress: string;
+  status: string;
+  timestamp: number;
+  withdrawalNumber: number;
+}
+
+interface PoloniexDepositsAndWithdrawals {
+  deposits: PoloniexDeposit[];
+  withdrawals: PoloniexWithdrawal[];
+}
+
+function toDeposit(x: PoloniexDeposit): Deposit {
+  return {
+    amount: parseFloat(x.amount),
+    currency: x.currency,
+    date: moment(x.timestamp, 'X'),
+  };
+}
+
+function toWithdrawal(x: PoloniexWithdrawal): Withdrawal {
+  return {
+    amount: parseFloat(x.amount),
+    currency: x.currency,
+    date: moment(x.timestamp, 'X'),
+  };
+}
+
+async function depositsAndWithdrawals(): Promise<DepositsAndWithdrawals> {
+  const response: PoloniexDepositsAndWithdrawals = await post('returnDepositsWithdrawals', {
+    start: moment('2013-01-01', 'YYYY-MM-DD').format('X'),
+    end: moment().format('X'),
+  });
+
+  return {
+    deposits: response.deposits.map(toDeposit),
+    withdrawals: response.withdrawals.map(toWithdrawal),
+  };
+}
+
 interface PoloniexApi extends Api {
   historicalTicker(day: moment.Moment, currencyPair: string): Promise<Ticker>;
   historicalTickers(day: moment.Moment, currencyPairs: string[]): Promise<Ticker>;
@@ -469,6 +523,7 @@ const api: PoloniexApi = {
   buyRate: withLogin(buyRate),
   addresses: withLogin(addresses),
   trades: withLogin(trades),
+  depositsAndWithdrawals: withLogin(depositsAndWithdrawals),
   historicalTicker: withLogin(historicalTicker),
   historicalTickers: withLogin(historicalTickers),
   loanOrders: withLogin(loanOrders),

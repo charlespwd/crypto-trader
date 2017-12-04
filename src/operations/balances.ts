@@ -6,37 +6,6 @@ import {
   extractToAmount,
 } from '../utils';
 
-interface Withdrawal {
-  amount: number;
-  currency: string;
-}
-
-interface Deposit {
-  amount: number;
-  currency: string;
-}
-
-interface TimestampedAction {
-  date: Moment;
-}
-
-export interface TradeAction extends TimestampedAction {
-  type: 'TRADE';
-  trade: Trade;
-}
-
-export interface DepositAction extends TimestampedAction {
-  type: 'DEPOSIT';
-  deposit: Deposit;
-}
-
-export interface WithdrawalAction extends TimestampedAction {
-  type: 'WITHDRAWAL';
-  withdrawal: Withdrawal;
-}
-
-export type CurrencyAction = TradeAction | DepositAction | WithdrawalAction;
-
 const sortActions = R.sortBy(action => action.date.format('X'));
 
 export function balances(actions: CurrencyAction[]) {
