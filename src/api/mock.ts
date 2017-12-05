@@ -34,4 +34,8 @@ export class MockApi implements Api {
   trades = async () => ({});
   buyRate = (currencyPair, tickers) => tickers[currencyPair].lowestAsk;
   sellRate = (currencyPair, tickers) => tickers[currencyPair].highestBid;
+  depositsAndWithdrawals = async () => ({
+    deposits: [],
+    withdrawals: [],
+  })
 }

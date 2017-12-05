@@ -201,6 +201,9 @@ const api: CoinbaseApi = {
   sellRate: () => {
     throw new Error('not implemented');
   },
+  depositsAndWithdrawals: () => {
+    throw new Error('not implementd');
+  },
 };
 
 export default api;

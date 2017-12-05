@@ -27,6 +27,7 @@ const allApis: Api = {
   buyRate: () => { throw new Error('This makes no sense'); },
   sellRate: () => { throw new Error('This makes no sense'); },
   trades: () => { throw new Error('This makes no sense'); },
+  depositsAndWithdrawals: () => { throw new Error('Not implemented'); },
 };
 
 export default allApis;

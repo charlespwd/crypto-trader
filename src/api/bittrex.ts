@@ -337,6 +337,51 @@ async function trades(): Promise<TradeHistory> {
   return toTradeHistory(result);
 }
 
+interface BRDeposit {
+  Id: number;
+  Amount: number;
+  Currency: string;
+  Confirmations: number;
+  LastUpdated: Date;
+  TxId: string;
+  CryptoAddress: string;
+}
+
+interface BRWithdrawal {
+  Id: number;
+  Amount: number;
+  Currency: string;
+  Confirmations: number;
+  LastUpdated: Date;
+  TxId: string;
+  CryptoAddress: string;
+}
+
+function toDeposit(d: BRWithdrawal): Withdrawal;
+function toDeposit(d: BRDeposit): Deposit {
+  return {
+    amount: d.Amount,
+    date: moment(d.LastUpdated),
+    currency: d.Currency,
+  };
+}
+
+async function depositsAndWithdrawals(): Promise<DepositsAndWithdrawals> {
+  const [brDeposits, brWithdrawals]: [BRDeposit[], BRWithdrawal[]] = await Promise.all([
+    makeRequest({
+      url: requestUrl('account/getdeposithistory'),
+    }),
+    makeRequest({
+      url: requestUrl('account/getwithdrawalhistory'),
+    }),
+  ]);
+
+  return {
+    deposits: brDeposits.map(toDeposit),
+    withdrawals: brWithdrawals.map(toDeposit),
+  };
+}
+
 const bittrex: Api = {
   name: 'bittrex',
   init,
@@ -348,5 +393,6 @@ const bittrex: Api = {
   buyRate: withLogin(buyRate),
   sellRate: withLogin(sellRate),
   trades: withLogin(trades),
+  depositsAndWithdrawals: withLogin(depositsAndWithdrawals),
 };
 export default bittrex;
