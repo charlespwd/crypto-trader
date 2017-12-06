@@ -1,9 +1,96 @@
 import * as request from 'request-promise-native';
+import * as moment from 'moment';
 import { Client } from 'coinbase';
 import { promisify } from 'util';
 import * as R from 'ramda';
 import * as auth from '../auth';
 import { withLoginFactory } from '../utils';
+
+namespace Coinbase {
+  export interface Client {
+    baseApiUri: string;
+    tokenUri: string;
+    caFile: string[];
+    strictSSL: boolean;
+    apiKey: string;
+    apiSecret: string;
+  }
+
+  export interface Amount {
+    amount: string;
+    currency: string;
+  }
+
+  export interface NativeAmount {
+    amount: string;
+    currency: string;
+  }
+
+  export interface Buy {
+    id: string;
+    resource: string;
+    resource_path: string;
+  }
+
+  export interface Details {
+    title: string;
+    subtitle: string;
+    payment_method_name: string;
+  }
+
+  export interface Client2 {
+    baseApiUri: string;
+    tokenUri: string;
+    caFile: string[];
+    strictSSL: boolean;
+    apiKey: string;
+    apiSecret: string;
+  }
+
+  export interface Balance {
+    amount: string;
+    currency: string;
+  }
+
+  export interface NativeBalance {
+    amount: string;
+    currency: string;
+  }
+
+  export interface Account {
+    client: Client2;
+    id: string;
+    name: string;
+    primary: boolean;
+    type: string;
+    currency: string;
+    balance: Balance;
+    created_at: Date;
+    updated_at: Date;
+    resource: string;
+    resource_path: string;
+    native_balance: NativeBalance;
+  }
+
+  export interface Transaction {
+    client: Client;
+    id: string;
+    type: string;
+    status: string;
+    amount: Amount;
+    native_amount: NativeAmount;
+    description?: any;
+    created_at: Date;
+    updated_at: Date;
+    resource: string;
+    resource_path: string;
+    instant_exchange: boolean;
+    buy?: Buy;
+    sell?: any;
+    details: Details;
+    account: Account;
+  }
+}
 
 const state = {
   exchangeName: 'coinbase',
@@ -51,8 +138,8 @@ async function balances(): Promise<Balances> {
   return toBalances(accountData) as Balances;
 }
 
-const toTotal = R.pipe(
-  (txs: {}[]) => R.filter(R.eqProps('type', { type: 'buy' }), txs),
+const toTotal = R.pipe<Coinbase.Transaction[], Coinbase.Transaction[], number[], number>(
+  (txs: Coinbase.Transaction[]) => R.filter(R.eqProps('type', { type: 'buy' }), txs),
   R.map(R.pipe(R.prop('native_amount'), R.prop('amount'), parseFloat)),
   R.sum,
 );
@@ -84,7 +171,7 @@ function getTransactions(account, pagination = null): Promise<TransactionRespons
   return promise as Promise<TransactionResponse>;
 }
 
-async function getAllTransactions(account) {
+async function getAllTransactionsForAccount(account) {
   let txns = [];
   let pagination;
 
@@ -101,16 +188,21 @@ async function getAllTransactions(account) {
   return txns;
 }
 
-async function totalSpent(): Promise<number> {
+async function getAllTransactions(): Promise<Coinbase.Transaction[]> {
   const accountData = await state.getAccounts({});
 
   let txs = [];
   for (const accountD of accountData) {
     const account = await state.getAccount(accountD.id);
-    const transactions = await getAllTransactions(account);
+    const transactions: Coinbase.Transaction[] = await getAllTransactionsForAccount(account);
     txs = txs.concat(transactions);
   }
 
+  return txs;
+}
+
+async function totalSpent(): Promise<number> {
+  const txs = await getAllTransactions();
   return toTotal(txs);
 }
 
@@ -177,6 +269,83 @@ async function tickers(): Promise<Tickers> {
   };
 }
 
+const toCurrency = (x: string) => {
+  if (x.toUpperCase() === 'USD') return 'USDT';
+  return x.toUpperCase();
+};
+
+const toCurrencyPair = (x: Coinbase.Transaction) => {
+  return [
+    toCurrency(x.native_amount.currency),
+    toCurrency(x.amount.currency),
+  ].join('_');
+};
+
+function toTrade(x: Coinbase.Transaction): Trade {
+  const amount = parseFloat(x.amount.amount);
+  const total = parseFloat(x.native_amount.amount);
+  return {
+    currencyPair: toCurrencyPair(x),
+    date: moment(x.updated_at),
+    type: (x.type) as 'buy' | 'sell',
+    amount,
+    total,
+    rate: (total / amount),
+  };
+}
+
+function toTrades(xs: Coinbase.Transaction[]): Trade[] {
+  return R.pipe<Coinbase.Transaction[], Coinbase.Transaction[], Trade[]>(
+    R.filter(R.either(x => x.type === 'buy', x => x.type === 'sell')),
+    R.map(toTrade),
+  )(xs);
+}
+
+async function trades(): Promise<TradeHistory> {
+  const txs = await getAllTransactions();
+  const trades = toTrades(txs);
+  return R.groupBy((x: Trade) => x.currencyPair, trades);
+}
+
+function toDeposit(x: Coinbase.Transaction): Deposit {
+  if (x.type !== 'buy') throw new Error('We consider BUY transaction to be deposits');
+
+  return {
+    date: moment(x.created_at),
+    amount: parseFloat(x.native_amount.amount),
+    currency: toCurrency(x.native_amount.currency),
+  };
+}
+
+const toDeposits = R.pipe<Coinbase.Transaction[], Coinbase.Transaction[], Deposit[]>(
+  R.filter((x: Coinbase.Transaction) => x.type === 'buy'),
+  R.map(toDeposit),
+);
+
+function toWithdrawal(x: Coinbase.Transaction): Withdrawal {
+  if (x.type !== 'send') throw new Error('We consider SEND transactions to be withdrawals');
+
+  return {
+    date: moment(x.created_at),
+    amount: Math.abs(parseFloat(x.amount.amount)),
+    currency: x.amount.currency,
+  };
+}
+
+const toWithdrawals = R.pipe<Coinbase.Transaction[], Coinbase.Transaction[], Withdrawal[]>(
+  R.filter((x: Coinbase.Transaction) => x.type === 'send'),
+  R.map(toWithdrawal),
+);
+
+async function depositsAndWithdrawals(): Promise<DepositsAndWithdrawals> {
+  const txs = await getAllTransactions();
+
+  return {
+    deposits: toDeposits(txs),
+    withdrawals: toWithdrawals(txs),
+  };
+}
+
 interface CoinbaseApi extends Api {
   totalSpent(): Promise<number>;
 }
@@ -189,9 +358,7 @@ const api: CoinbaseApi = {
   tickers: withLogin(tickers),
   sell: withLogin(sell),
   buy: withLogin(buy),
-  trades: () => {
-    throw new Error('not implemented');
-  },
+  trades: withLogin(trades),
   addresses: () => {
     throw new Error('not implemented');
   },
@@ -201,9 +368,7 @@ const api: CoinbaseApi = {
   sellRate: () => {
     throw new Error('not implemented');
   },
-  depositsAndWithdrawals: () => {
-    throw new Error('not implementd');
-  },
+  depositsAndWithdrawals: withLogin(depositsAndWithdrawals),
 };
 
 export default api;
