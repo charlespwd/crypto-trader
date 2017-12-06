@@ -5,3 +5,4 @@ node_modules
 .crypto-secrets
 yarn-error.log
 lib
+todos.md
