@@ -1,7 +1,8 @@
 {
   "name": "crypto-trader",
   "version": "0.1.2",
-  "description": "A command line tool for diversifying your portfolio on crypto currency exchanges (poloniex, bittrex).",
+  "private": true,
+  "description": "A suite of tools and libraries for interacting with cryptocurrency exchanges.",
   "main": "lib/run-cli.js",
   "bin": {
     "crypto-trader": "bin/crypto-trader.js"
@@ -47,6 +48,7 @@
     "@types/sinon-chai": "^2.7.29",
     "chai": "^4.1.2",
     "husky": "^0.14.3",
+    "lerna": "^2.5.1",
     "mocha": "^3.5.3",
     "mocha-multi": "^0.11.0",
     "mocha-notifier-reporter": "^0.1.2",
