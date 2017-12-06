@@ -1,7 +1,8 @@
 import poloniex from './poloniex';
 import coinbase from './coinbase';
 import bittrex from './bittrex';
-import { add, merge, mergeWith, reduce } from 'ramda';
+import * as fiat from '../fiat';
+import { add, concat, merge, mergeWith, reduce } from 'ramda';
 
 const apis = [
   poloniex,
@@ -14,7 +15,7 @@ const allApis: Api = {
 
   init: () => {},
   tickers: async () => {
-    const tickers = await Promise.all(apis.filter(x => x.name !== 'coinbase').map(x => x.tickers()));
+    const tickers = await Promise.all(apis.filter(x => x.name !== 'coinbase').map(x => x.tickers()).concat(fiat.tickers()));
     return tickers.reduce(merge);
   },
   addresses: () => { throw new Error('This makes no sense'); },
@@ -26,8 +27,16 @@ const allApis: Api = {
   sell: () => { throw new Error('This makes no sense'); },
   buyRate: () => { throw new Error('This makes no sense'); },
   sellRate: () => { throw new Error('This makes no sense'); },
-  trades: () => { throw new Error('This makes no sense'); },
-  depositsAndWithdrawals: () => { throw new Error('Not implemented'); },
+  trades: async () => {
+    const trades = await Promise.all(apis.map(
+      x => x.trades(),
+    ));
+    return trades.reduce(mergeWith(concat));
+  },
+  depositsAndWithdrawals: async () => {
+    const depositsAndWithdrawalsByApi = await Promise.all(apis.map(x => x.depositsAndWithdrawals()));
+    return depositsAndWithdrawalsByApi.reduce(mergeWith(concat));
+  },
 };
 
 export default allApis;
