@@ -1,0 +1,43 @@
+{
+  "name": "@coincurry/api",
+  "version": "0.1.2",
+  "description": "Coincurry APIs",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "engine": {
+    "node": ">=8.0.0"
+  },
+  "scripts": {
+    "build": "rm -rf lib && tsc -p . --outDir lib",
+    "precommit": "tslint -t verbose src/**"
+  },
+  "dependencies": {
+    "@coincurry/auth": "0.1.2",
+    "@coincurry/utils": "0.1.2",
+    "coinbase": "^2.0.6",
+    "colors": "^1.1.2",
+    "lodash.throttle": "^4.1.1",
+    "moment": "^2.18.1",
+    "nodemon": "^1.11.0",
+    "query-string": "^4.3.4",
+    "ramda": "^0.24.1",
+    "request": "^2.81.0",
+    "request-promise-native": "^1.0.4",
+    "util.promisify": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.2",
+    "@types/query-string": "^4.3.1",
+    "@types/ramda": "^0.24.11",
+    "@types/request-promise-native": "^1.0.5",
+    "husky": "^0.14.3",
+    "sinon": "^4.0.1",
+    "sinon-chai": "^2.13.0",
+    "ts-node": "^3.1.0",
+    "tslint": "^5.7.0",
+    "tslint-config-airbnb": "^5.2.1",
+    "typescript": "^2.5.2"
+  },
+  "author": "Charles-Philippe Clermont @charlespwd",
+  "license": "MIT"
+}

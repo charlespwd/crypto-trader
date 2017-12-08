@@ -6,3 +6,6 @@ node_modules
 yarn-error.log
 lib
 todos.md
+**/lib
+
+lerna-debug.log

@@ -1,21 +1,22 @@
 {
   "compilerOptions": {
+    "declaration": true,
     "module": "commonjs",
-    "target": "es6",
-    "noImplicitAny": false,
     "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "dist",
-    "baseUrl": ".",
+    "noImplicitAny": false,
     "paths": {
+      "src": [
+        "src/*"
+      ],
       "*": [
         "node_modules/*"
       ]
-    }
+    },
+    "sourceMap": true,
+    "target": "es6"
   },
-  "include": [
-    "index.d.ts",
-    "index.ts",
-    "src/**/*.ts"
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
   ]
 }

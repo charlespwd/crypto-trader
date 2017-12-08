@@ -1,8 +1,9 @@
 {
-  "name": "coincurry-monorepo",
+  "name": "@coincurry/utils",
   "version": "0.1.2",
   "private": true,
-  "description": "",
+  "description": "A suite of tools and libraries for interacting with cryptocurrency exchanges.",
+  "main": "lib/index.js",
   "author": "Charles-Philippe Clermont @charlespwd",
   "license": "MIT",
   "engine": {
@@ -17,37 +18,20 @@
     "test:watch": "multi='mocha-notifier-reporter=- spec=-' mocha --watch src/**/*.spec.ts",
     "watch": "NODE_ENV=devel nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/run-cli.ts"
   },
-  "workspaces": [
-    "packages/*"
-  ],
   "dependencies": {
-    "cli-table": "^0.3.1",
-    "coinbase": "^2.0.6",
-    "colors": "^1.1.2",
-    "lodash.throttle": "^4.1.1",
-    "moment": "^2.18.1",
-    "nodemon": "^1.11.0",
-    "prompt": "^1.0.0",
-    "query-string": "^4.3.4",
     "ramda": "^0.24.1",
-    "request": "^2.81.0",
-    "request-promise-native": "^1.0.4",
-    "util.promisify": "^1.0.0",
-    "vorpal": "^1.12.0",
-    "yesno": "^0.0.1"
+    "colors": "^1.1.2",
+    "moment": "^2.18.1"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
     "@types/mocha": "^2.2.43",
     "@types/node": "^8.0.2",
-    "@types/query-string": "^4.3.1",
     "@types/ramda": "^0.24.11",
-    "@types/request-promise-native": "^1.0.5",
     "@types/sinon": "^2.3.4",
     "@types/sinon-chai": "^2.7.29",
     "chai": "^4.1.2",
     "husky": "^0.14.3",
-    "lerna": "^2.5.1",
     "mocha": "^3.5.3",
     "mocha-multi": "^0.11.0",
     "mocha-notifier-reporter": "^0.1.2",

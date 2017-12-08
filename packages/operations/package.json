@@ -1,0 +1,42 @@
+{
+  "name": "@coincurry/operations",
+  "version": "0.1.2",
+  "description": "The coincurry operations / business logic",
+  "main": "lib/index.js",
+  "author": "Charles-Philippe Clermont @charlespwd",
+  "license": "MIT",
+  "engine": {
+    "node": ">=8.0.0"
+  },
+  "scripts": {
+    "build": "rm -rf lib && tsc -p . --outDir lib",
+    "precommit": "tslint -t verbose src/**",
+    "test": "multi='spec=-' mocha src/**/*.spec.ts",
+    "test:watch": "multi='mocha-notifier-reporter=- spec=-' mocha --watch src/**/*.spec.ts"
+  },
+  "dependencies": {
+    "@coincurry/api": "^0.1.2",
+    "@coincurry/utils": "^0.1.2",
+    "moment": "^2.18.1",
+    "ramda": "^0.24.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^2.2.43",
+    "@types/node": "^8.0.2",
+    "@types/ramda": "^0.24.11",
+    "@types/sinon": "^2.3.4",
+    "@types/sinon-chai": "^2.7.29",
+    "chai": "^4.1.2",
+    "husky": "^0.14.3",
+    "mocha": "^3.5.3",
+    "mocha-multi": "^0.11.0",
+    "mocha-notifier-reporter": "^0.1.2",
+    "sinon": "^4.0.1",
+    "sinon-chai": "^2.13.0",
+    "ts-node": "^3.1.0",
+    "tslint": "^5.7.0",
+    "tslint-config-airbnb": "^5.2.1",
+    "typescript": "^2.5.2"
+  }
+}
