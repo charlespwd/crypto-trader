@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "rm -rf lib && tsc -p . --outDir lib",
-    "precommit": "tslint -t verbose src/**"
+    "precommit": "tslint -t verbose index.ts"
   },
   "author": "Charles-Philippe Clermont",
   "license": "MIT",

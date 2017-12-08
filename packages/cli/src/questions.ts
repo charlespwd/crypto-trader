@@ -1,4 +1,4 @@
-export const ok = (message) => ({
+export const ok = message => ({
   type: 'confirm',
   name: 'ok',
   message,

@@ -16,8 +16,6 @@
     "devel": "NODE_ENV=devel yarn watch",
     "precommit": "tslint -t verbose src/**",
     "start": "NODE_ENV=devel ts-node src/index.ts",
-    "test": "multi='spec=-' mocha **/*.spec.ts",
-    "test:watch": "multi='mocha-notifier-reporter=- spec=-' mocha --watch **/*.spec.ts",
     "watch": "NODE_ENV=devel nodemon --watch 'src/**/*.ts' --ignore '**/*.spec.ts' --exec 'ts-node' src/index.ts"
   },
   "dependencies": {
