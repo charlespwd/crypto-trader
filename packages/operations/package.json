@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "rm -rf lib && tsc -p . --outDir lib",
+    "dev": "tsc -p . --outDir lib --watch",
     "precommit": "tslint -t verbose src/**",
     "test": "multi='spec=-' mocha src/**/*.spec.ts",
     "test:watch": "multi='mocha-notifier-reporter=- spec=-' mocha --watch src/**/*.spec.ts"

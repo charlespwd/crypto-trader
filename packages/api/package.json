@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "rm -rf lib && tsc -p . --outDir lib",
+    "dev": "tsc -p . --outDir lib --watch",
     "precommit": "tslint -t verbose src/**"
   },
   "dependencies": {

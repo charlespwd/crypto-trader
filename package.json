@@ -10,12 +10,13 @@
   },
   "scripts": {
     "build": "lerna run build",
-    "devel": "NODE_ENV=devel yarn watch",
+    "dev": "yarn dev:watch",
+    "dev:cli": "cd packages/cli && yarn devel",
+    "dev:watch": "lerna run dev --parallel --scope='!@coincurry/cli'",
     "precommit": "lerna run --parallel precommit",
     "start": "lerna run start",
     "test": "lerna run --parallel test",
-    "test:watch": "lerna run --parallel test:watch",
-    "watch": "echo 'TODO'"
+    "test:watch": "lerna run --parallel test:watch"
   },
   "workspaces": [
     "packages/*"

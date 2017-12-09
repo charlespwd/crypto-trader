@@ -11,12 +11,10 @@
   },
   "scripts": {
     "build": "rm -rf lib && tsc -p . --outDir lib",
-    "devel": "NODE_ENV=devel yarn watch",
+    "dev": "tsc -p . --outDir lib --watch",
     "precommit": "tslint -t verbose src/**",
-    "start": "NODE_ENV=devel ts-node src/run-cli.ts",
     "test": "multi='spec=-' mocha src/**/*.spec.ts",
-    "test:watch": "multi='mocha-notifier-reporter=- spec=-' mocha --watch src/**/*.spec.ts",
-    "watch": "NODE_ENV=devel nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/run-cli.ts"
+    "test:watch": "multi='mocha-notifier-reporter=- spec=-' mocha --watch src/**/*.spec.ts"
   },
   "dependencies": {
     "ramda": "^0.24.1",
